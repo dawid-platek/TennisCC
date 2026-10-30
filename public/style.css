@@ -179,3 +179,47 @@ span.check-btn { cursor: default; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .score-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---- PWA / mobile ------------------------------------------------------ */
+.topbar {
+  padding-top: max(.75rem, env(safe-area-inset-top));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  position: sticky; top: 0; z-index: 10;
+}
+main { padding-bottom: max(4rem, env(safe-area-inset-bottom)); }
+.install {
+  display: flex; align-items: center; gap: .75rem; padding: .6rem .9rem; margin-bottom: 1rem;
+  background: #fffbe6; border: 1px solid #f0e2a6; border-radius: var(--radius); font-size: .9rem;
+}
+.install[hidden], .install-btn[hidden] { display: none; }
+.install-text { flex: 1; }
+a, button, summary { -webkit-tap-highlight-color: rgba(31,122,77,.15); }
+
+@media (max-width: 600px) {
+  main { padding: 1rem .75rem 4rem; }
+  .topbar { padding-bottom: .6rem; gap: .4rem; }
+  .topbar nav { gap: .9rem; font-size: .95rem; width: 100%; justify-content: space-between; }
+  h1 { font-size: 1.35rem; }
+  .card { padding: 1rem; }
+  .card.narrow { margin: 1rem auto; }
+  /* 16px inputs stop iOS Safari from zooming in on focus. */
+  input, select, textarea { font-size: 16px; padding: .65rem .7rem; }
+  .btn { padding: .65rem 1rem; }
+  .row2 { grid-template-columns: 1fr; }
+  .row-form { flex-direction: column; }
+  .skill { grid-template-columns: 80px 1fr 56px; }
+  .stat .num { font-size: 1.35rem; }
+  .hero .btn { width: 100%; text-align: center; }
+  .avatar.big { width: 52px; height: 52px; font-size: 1.15rem; }
+  .icon-btn { font-size: 1.5rem; padding: 0 .4rem; }
+  .check-btn { width: 28px; height: 28px; }
+  .parent-head .actions { width: 100%; }
+  /* The chart's viewBox is scaled down on phones, so enlarge its text and strokes. */
+  .chart .axis { font-size: 20px; }
+  .chart polyline.s-avg { stroke-width: 4; }
+  .chart circle.s-avg { r: 6; stroke-width: 3; }
+}
+@media (display-mode: standalone) {
+  body { overscroll-behavior-y: none; }
+}

@@ -150,3 +150,18 @@ test('anonymous users are sent to login, bad credentials rejected, CSRF enforced
   });
   assert.equal(res.status, 403);
 });
+
+test('PWA: manifest and service worker are served; data pages are not cached', async () => {
+  const manifest = await fetch(`${base}/manifest.webmanifest`);
+  assert.equal(manifest.status, 200);
+  const m = JSON.parse(await manifest.text());
+  assert.equal(m.display, 'standalone');
+  assert.ok(m.icons.some((i) => i.sizes === '512x512'));
+
+  const sw = await fetch(`${base}/sw.js`);
+  assert.equal(sw.status, 200);
+  assert.equal(sw.headers.get('cache-control'), 'no-cache');
+
+  const page = await fetch(`${base}/login`);
+  assert.match(page.headers.get('cache-control'), /no-store/);
+});

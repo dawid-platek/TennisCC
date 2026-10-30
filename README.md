@@ -49,6 +49,21 @@ Dane demonstracyjne (tylko do pustej bazy): `npm run seed` — loginy `trener@de
 
 Testy: `npm test`.
 
+## Aplikacja mobilna (PWA)
+
+Tenis Progress można zainstalować na telefonie jak zwykłą aplikację — z ikoną na ekranie
+początkowym i bez paska przeglądarki.
+
+- **Android (Chrome):** otwórz stronę i stuknij „Zainstaluj” na pasku nad treścią
+  (albo menu ⋮ → „Zainstaluj aplikację”).
+- **iPhone / iPad (Safari):** „Udostępnij” → „Do ekranu początkowego”.
+
+Wymagania: aplikacja musi działać pod adresem **HTTPS** (wyjątkiem jest `localhost`).
+Service worker (`public/sw.js`) zapisuje w pamięci telefonu tylko statyczne pliki (style, skrypty, ikony).
+Strony z danymi dzieci nigdy nie są zapisywane w pamięci podręcznej (`Cache-Control: no-store`),
+więc po wylogowaniu na urządzeniu nic nie zostaje. Bez internetu pojawia się strona „Brak połączenia”.
+Po zmianie plików statycznych zwiększ numer wersji `CACHE` w `public/sw.js`.
+
 ### Zmienne środowiskowe
 | Zmienna | Opis |
 |---|---|

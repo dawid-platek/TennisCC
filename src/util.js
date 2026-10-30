@@ -52,7 +52,7 @@ function escapeXml(s) {
 // Server-rendered SVG line chart: one line per series, values on a 0–10 scale.
 function lineChart(points, series) {
   if (points.length < 2) return '';
-  const W = 640, H = 260, L = 34, R = 16, T = 14, B = 34;
+  const W = 640, H = 260, L = 34, R = 30, T = 14, B = 40;
   const x = (i) => L + (i * (W - L - R)) / (points.length - 1);
   const y = (v) => T + ((10 - v) * (H - T - B)) / 10;
 
@@ -64,7 +64,7 @@ function lineChart(points, series) {
   const step = Math.ceil(points.length / 8);
   points.forEach((p, i) => {
     if (i % step === 0 || i === points.length - 1) {
-      svg += `<text class="axis" x="${x(i)}" y="${H - 10}" text-anchor="middle">${escapeXml(formatDate(p.date).slice(0, 5))}</text>`;
+      svg += `<text class="axis" x="${x(i)}" y="${H - 8}" text-anchor="middle">${escapeXml(formatDate(p.date).slice(0, 5))}</text>`;
     }
   });
   for (const s of series) {

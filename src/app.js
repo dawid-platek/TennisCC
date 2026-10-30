@@ -24,11 +24,21 @@ function createApp({ db = openDatabase() } = {}) {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'same-origin',
-      'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; frame-ancestors 'none'",
+      'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; form-action 'self'; frame-ancestors 'none'",
     });
     next();
   });
+  // The service worker and manifest must always be revalidated so updates reach installed apps.
+  app.get(['/sw.js', '/manifest.webmanifest'], (req, res, next) => {
+    res.set('Cache-Control', 'no-cache');
+    next();
+  });
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: production ? '1d' : 0 }));
+  // Dynamic pages contain children's data: never keep them in browser/proxy caches.
+  app.use((req, res, next) => {
+    res.set('Cache-Control', 'private, no-store');
+    next();
+  });
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use(
     session({
