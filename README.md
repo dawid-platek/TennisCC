@@ -12,8 +12,9 @@ Każdy rodzic po zalogowaniu widzi **wyłącznie swoje dziecko lub dzieci** (tyl
 - lista zawodników z wyszukiwarką, dodawanie / edycja / usuwanie,
 - dziennik treningów z oceną **1–6** pięciu elementów: forhend, bekhend, wolej, serwis, poruszanie się
   (każdy element jest opcjonalny — oceniasz tylko to, co było ćwiczone),
-- **wykresy postępów** każdego zawodnika: wspólny wykres wszystkich elementów oraz osobny wykres
-  każdego elementu, z aktualną oceną i zmianą ▲▼ względem poprzedniej,
+- **wykresy postępów** każdego zawodnika: wykres w czasie z przełącznikiem elementów (wszystkie albo jeden),
+  karty ze średnią oceną każdego elementu i trendem od pierwszego treningu oraz osobny wykres
+  każdego elementu z aktualną oceną i zmianą ▲▼ względem poprzedniej,
 - mecze i turnieje (bilans W–P), cele z terminami,
 - notatki prywatne niewidoczne dla rodziców,
 - konta rodziców: zakładanie (z automatycznym hasłem tymczasowym), reset hasła, usuwanie,

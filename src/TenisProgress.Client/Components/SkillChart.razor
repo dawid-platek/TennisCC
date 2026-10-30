@@ -21,11 +21,13 @@
         {
             var coords = _points.Select((p, i) => (p, i)).Where(t => t.p.Scores.GetValueOrDefault(skill.Key).HasValue).ToList();
             if (coords.Count == 0) continue;
+            var pts = coords.Select(t => (x: X(t.i), y: Y(t.p.Scores[skill.Key]!.Value))).ToList();
+            var line = Smooth(pts);
             @if (Compact)
             {
-                <polygon class="area k-@skill.Key" points="@F(X(coords[0].i)),@F(Y(Skills.Min)) @string.Join(" ", coords.Select(t => $"{F(X(t.i))},{F(Y(t.p.Scores[skill.Key]!.Value))}")) @F(X(coords[^1].i)),@F(Y(Skills.Min))" />
+                <path class="area k-@skill.Key" d="@line L @F(pts[^1].x),@F(Y(Skills.Min)) L @F(pts[0].x),@F(Y(Skills.Min)) Z" />
             }
-            <polyline class="line k-@skill.Key" points="@string.Join(" ", coords.Select(t => $"{F(X(t.i))},{F(Y(t.p.Scores[skill.Key]!.Value))}"))" />
+            <path class="line k-@skill.Key" d="@line" />
             @foreach (var (p, i) in coords)
             {
                 <circle class="k-@skill.Key" cx="@F(X(i))" cy="@F(Y(p.Scores[skill.Key]!.Value))" r="3.5">
@@ -70,5 +72,45 @@
 
     private double X(int i) => L + i * (W - L - R) / (_points.Count - 1);
     private double Y(double v) => T + (Skills.Max - v) * (H - T - B) / (Skills.Max - Skills.Min);
+    // Smooth curve through the points that never overshoots them (monotone cubic), so a line
+    // can't dip below 1 or rise above 6 between two ratings.
+    private static string Smooth(IReadOnlyList<(double x, double y)> p)
+    {
+        var n = p.Count;
+        var start = $"M{F(p[0].x)},{F(p[0].y)}";
+        if (n < 2) return start;
+
+        var h = new double[n - 1];
+        var d = new double[n - 1];
+        for (var i = 0; i < n - 1; i++)
+        {
+            h[i] = p[i + 1].x - p[i].x;
+            d[i] = h[i] == 0 ? 0 : (p[i + 1].y - p[i].y) / h[i];
+        }
+        var m = new double[n];
+        m[0] = d[0];
+        m[n - 1] = d[n - 2];
+        for (var i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+        for (var i = 0; i < n - 1; i++)
+        {
+            if (d[i] == 0) { m[i] = 0; m[i + 1] = 0; continue; }
+            double a = m[i] / d[i], b = m[i + 1] / d[i], sq = a * a + b * b;
+            if (sq > 9)
+            {
+                var t = 3 / Math.Sqrt(sq);
+                m[i] = t * a * d[i];
+                m[i + 1] = t * b * d[i];
+            }
+        }
+
+        var sb = new System.Text.StringBuilder(start);
+        for (var i = 0; i < n - 1; i++)
+        {
+            var dx = h[i] / 3;
+            sb.Append($" C{F(p[i].x + dx)},{F(p[i].y + m[i] * dx)} {F(p[i + 1].x - dx)},{F(p[i + 1].y - m[i + 1] * dx)} {F(p[i + 1].x)},{F(p[i + 1].y)}");
+        }
+        return sb.ToString();
+    }
+
     private static string F(double d) => d.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 }

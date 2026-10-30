@@ -55,31 +55,63 @@
     }
 
     <section class="card" id="postepy">
-        <h2><Icon Name="trending-up" /> Postępy</h2>
+        <h2><Icon Name="trending-up" /> Postęp w czasie</h2>
         @if (latest is null)
         {
             <p class="muted">Brak ocen. Oceny (1–6) wpisuje trener w dzienniku treningów.</p>
         }
         else
         {
-            <p class="muted small">
-                Aktualny poziom to ostatnia ocena każdego elementu (▲▼ = zmiana względem poprzedniej). Skala 1–6, 6 = najlepiej.
-            </p>
-            @if (rated.Count >= 2)
-            {
-                <h3>Wszystkie elementy</h3>
-                <div class="legend">
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">Postęp zagrań</div>
+                    <p class="muted small">Ocena 1–@Skills.Max po każdym treningu (@Skills.Max = najlepiej)</p>
+                </div>
+                <div class="pills" role="group" aria-label="Wybór elementów na wykresie">
+                    <button class="pill @(_focus is null ? "active" : "")" @onclick="() => _focus = null">Wszystkie</button>
                     @foreach (var skill in Skills.All)
                     {
-                        <span class="legend-item k-@skill.Key"><span class="dot"></span>@skill.Label</span>
+                        <button class="pill k-@skill.Key @(_focus == skill.Key ? "active" : "")" @onclick="() => _focus = skill.Key">
+                            <span class="dot"></span>@skill.Label
+                        </button>
                     }
                 </div>
-                <SkillChart Trainings="p.Trainings" Label="Wykres postępów wszystkich elementów" />
+            </div>
+            @if (rated.Count >= 2)
+            {
+                <SkillChart Trainings="p.Trainings" Only="FocusSkills" Label="Wykres postępów w czasie" />
             }
             else
             {
-                <p class="muted small">Wykresy pojawią się po drugiej ocenionej sesji treningowej.</p>
+                <p class="muted small">Wykres pojawi się po drugiej ocenionej sesji treningowej.</p>
             }
+
+            <h3>Średnie ocen z całego okresu</h3>
+            <div class="avg-cards">
+                @foreach (var skill in Skills.All)
+                {
+                    var (avg, delta) = Stats(p.Trainings, skill.Key);
+                    <div class="avg-card k-@skill.Key">
+                        <div class="avg-head">
+                            <span class="avg-name"><span class="dot"></span>@skill.Label</span>
+                            <span class="avg-val">@(avg?.ToString("0.0") ?? "–")</span>
+                        </div>
+                        <div class="avg-bar"><span style="width: @((int)Math.Round((avg ?? 0) / Skills.Max * 100))%"></span></div>
+                        @if (delta is { } dlt)
+                        {
+                            <div class="avg-trend @(dlt > 0 ? "up" : dlt < 0 ? "down" : "")">
+                                <Icon Name="@(dlt > 0 ? "trending-up" : dlt < 0 ? "trending-down" : "minus")" Size="16" />
+                                @(dlt > 0 ? $"+{dlt}" : dlt < 0 ? $"−{-dlt}" : "bez zmian") od pierwszego treningu
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="avg-trend">Za mało ocen, by pokazać trend</div>
+                        }
+                    </div>
+                }
+            </div>
+
             <h3>Każdy element osobno</h3>
             <div class="skill-cards">
                 @foreach (var skill in Skills.All)
@@ -304,6 +336,17 @@
     private IReadOnlyList<string>? _loadErrors;
     private List<ParentDto> _allParents = [];
     private int _parentToLink;
+    private string? _focus; // element shown on the main chart; null = all
+
+    private IReadOnlyList<Skill>? FocusSkills => _focus is null ? null : Skills.All.Where(s => s.Key == _focus).ToList();
+
+    // Average of every rating of one element, and how much it changed since its first rating.
+    private static (double? Avg, int? Delta) Stats(IReadOnlyList<TrainingDto> newestFirst, string key)
+    {
+        var values = newestFirst.Select(t => t.Scores.GetValueOrDefault(key)).Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        if (values.Count == 0) return (null, null);
+        return (values.Average(), values.Count >= 2 ? values[0] - values[^1] : null);
+    }
 
     private readonly Dictionary<string, bool> _open = new()
     {

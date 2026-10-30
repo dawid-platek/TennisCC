@@ -362,11 +362,35 @@ label.check input { width: 18px; height: 18px; accent-color: var(--brand); }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; }
 
 .chart { width: 100%; height: auto; display: block; }
-.chart .gridline { stroke: var(--line); stroke-width: 1; }
+.chart .gridline { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 2 5; opacity: .7; }
 .chart .axis { fill: var(--muted); font-size: 11px; }
-.chart polyline { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.chart circle { fill: var(--surface); stroke: var(--c); stroke-width: 2; }
+.chart path.line { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart circle { fill: var(--c); stroke: var(--surface); stroke-width: 1.5; }
+.chart.compact circle { fill: var(--surface); stroke: var(--c); stroke-width: 2; }
 .chart .area { fill: var(--c); fill-opacity: .13; stroke: none; }
+
+.chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.chart-title { font-size: 1.2rem; font-weight: 700; letter-spacing: -.015em; }
+.chart-head p { margin: .1rem 0 0; }
+.pills { display: flex; flex-wrap: wrap; gap: .4rem; }
+.pill {
+  display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .9rem; border: 0; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .85rem; font-weight: 600; background: var(--surface-2); color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line); transition: background .15s, color .15s;
+}
+.pill:hover { background: var(--line); }
+.pill.active { background: var(--text); color: var(--surface); box-shadow: none; }
+
+.avg-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .85rem; }
+.avg-card { padding: 1rem 1.1rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; }
+.avg-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .65rem; }
+.avg-name { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; color: var(--muted); }
+.avg-val { font-size: 1.7rem; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+.avg-bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.avg-bar span { display: block; height: 100%; border-radius: inherit; background: var(--c); }
+.avg-trend { display: flex; align-items: center; gap: .4rem; margin-top: .7rem; font-size: .85rem; color: var(--muted); }
+.avg-trend.up { color: var(--up); }
+.avg-trend.down { color: var(--down); }
 
 .skill-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .85rem; }
 .skill-card {
@@ -454,7 +478,7 @@ span.check-btn { cursor: default; }
   .row2 { grid-template-columns: 1fr; }
   .row-form { flex-direction: column; }
   .score-grid { grid-template-columns: repeat(2, 1fr); }
-  .skill-cards { grid-template-columns: 1fr; }
+  .skill-cards, .avg-cards { grid-template-columns: 1fr; }
   .hero .btn { width: 100%; }
   .avatar.big { width: 60px; height: 60px; font-size: 1.25rem; }
   .page-head .btn { width: 100%; }
@@ -466,8 +490,8 @@ span.check-btn { cursor: default; }
   .icon-btn { width: 36px; height: 36px; }
   /* The big chart is scaled down on phones: enlarge its text and strokes. */
   .chart:not(.compact) .axis { font-size: 20px; }
-  .chart:not(.compact) polyline { stroke-width: 4; }
-  .chart:not(.compact) circle { r: 6; stroke-width: 3; }
+  .chart:not(.compact) path.line { stroke-width: 4; }
+  .chart:not(.compact) circle { r: 5.5; stroke-width: 2; }
 }
 @media (display-mode: standalone) {
   body { overscroll-behavior-y: none; }
