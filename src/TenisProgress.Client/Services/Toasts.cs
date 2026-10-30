@@ -33,7 +33,16 @@ public sealed class Toasts(NavigationManager nav)
 
     private void Show(ToastKind kind, string text, string? path, bool sticky)
     {
-        Current = new Toast(kind, text, path?.TrimEnd('/') ?? PathOf(nav, nav.Uri), sticky);
+        var toast = new Toast(kind, text, path?.TrimEnd('/') ?? PathOf(nav, nav.Uri), sticky);
+        Current = toast;
         Changed?.Invoke();
+        if (!sticky) _ = DismissLaterAsync(toast, kind == ToastKind.Error ? 8000 : 4500);
+    }
+
+    // Messages disappear on their own; passwords (sticky) stay until closed.
+    private async Task DismissLaterAsync(Toast toast, int ms)
+    {
+        await Task.Delay(ms);
+        if (ReferenceEquals(Current, toast)) Clear();
     }
 }

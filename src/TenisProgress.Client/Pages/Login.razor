@@ -6,8 +6,11 @@
 <PageTitle>Logowanie · Tenis Progress</PageTitle>
 
 <section class="card narrow">
-    <h1>Zaloguj się</h1>
-    <p class="muted">Trenerzy i rodzice logują się tym samym formularzem.</p>
+    <div class="auth-head">
+        <span class="ball logo" aria-hidden="true"></span>
+        <h1>Zaloguj się</h1>
+        <p class="muted">Trenerzy i rodzice logują się tym samym formularzem.</p>
+    </div>
     <ErrorList Errors="_errors" />
     <EditForm Model="_form" OnValidSubmit="SubmitAsync" class="stack" FormName="login">
         <DataAnnotationsValidator />

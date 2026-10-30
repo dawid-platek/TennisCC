@@ -1,0 +1,19 @@
+@* Navigation links; rendered in the desktop header and in the mobile bottom tab bar. *@
+@if (IsCoach)
+{
+    <NavLink class="nav-item" href="players"><Icon Name="users" /><span>Zawodnicy</span></NavLink>
+    <NavLink class="nav-item" href="parents"><Icon Name="heart" /><span>Rodzice</span></NavLink>
+}
+else
+{
+    <NavLink class="nav-item" href="my"><Icon Name="home" /><span>Moje dzieci</span></NavLink>
+}
+@if (ShowAccount)
+{
+    <NavLink class="nav-item" href="account"><Icon Name="user" /><span>Konto</span></NavLink>
+}
+
+@code {
+    [Parameter] public bool IsCoach { get; set; }
+    [Parameter] public bool ShowAccount { get; set; }
+}

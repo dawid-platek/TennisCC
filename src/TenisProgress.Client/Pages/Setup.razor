@@ -6,10 +6,13 @@
 <PageTitle>Konfiguracja · Tenis Progress</PageTitle>
 
 <section class="card narrow">
-    <h1>Witaj w Tenis Progress</h1>
-    <p class="muted">
-        Utwórz pierwsze konto trenera (administratora). Ten formularz działa tylko do momentu utworzenia pierwszego konta.
-    </p>
+    <div class="auth-head">
+        <span class="ball logo" aria-hidden="true"></span>
+        <h1>Witaj w Tenis Progress</h1>
+        <p class="muted">
+            Utwórz pierwsze konto trenera (administratora). Ten formularz działa tylko do momentu utworzenia pierwszego konta.
+        </p>
+    </div>
     <ErrorList Errors="_errors" />
     <EditForm Model="_form" OnValidSubmit="SubmitAsync" class="stack" FormName="setup">
         <DataAnnotationsValidator />

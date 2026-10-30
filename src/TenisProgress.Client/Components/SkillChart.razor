@@ -21,6 +21,10 @@
         {
             var coords = _points.Select((p, i) => (p, i)).Where(t => t.p.Scores.GetValueOrDefault(skill.Key).HasValue).ToList();
             if (coords.Count == 0) continue;
+            @if (Compact)
+            {
+                <polygon class="area k-@skill.Key" points="@F(X(coords[0].i)),@F(Y(Skills.Min)) @string.Join(" ", coords.Select(t => $"{F(X(t.i))},{F(Y(t.p.Scores[skill.Key]!.Value))}")) @F(X(coords[^1].i)),@F(Y(Skills.Min))" />
+            }
             <polyline class="line k-@skill.Key" points="@string.Join(" ", coords.Select(t => $"{F(X(t.i))},{F(Y(t.p.Scores[skill.Key]!.Value))}"))" />
             @foreach (var (p, i) in coords)
             {

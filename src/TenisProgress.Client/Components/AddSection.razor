@@ -1,7 +1,7 @@
 @* Collapsible "+ add" panel under a list; the parent controls Open so it can close it after saving. *@
 <div class="add">
     <button type="button" class="add-toggle" aria-expanded="@Open" @onclick="ToggleAsync">
-        @(Open ? "− " : "+ ")@Title
+        <Icon Name="@(Open ? "x" : "plus")" Size="16" /> @Title
     </button>
     @if (Open)
     {

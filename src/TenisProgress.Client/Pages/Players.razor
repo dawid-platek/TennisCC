@@ -7,46 +7,60 @@
 <PageTitle>Zawodnicy · Tenis Progress</PageTitle>
 
 <div class="page-head">
-    <h1>Zawodnicy @if (_players is not null) { <span class="muted">(@_players.Count)</span> }</h1>
-</div>
-<div class="columns">
     <div>
-        @if (_players is null)
-        {
-            <ErrorList Errors="_loadErrors" />
-            @if (_loadErrors is null) { <p class="muted">Ładowanie…</p> }
-        }
-        else if (_players.Count == 0)
-        {
-            <section class="card"><p>Nie masz jeszcze żadnych zawodników. Dodaj pierwszego za pomocą formularza.</p></section>
-        }
-        else
-        {
-            <input class="search" type="search" placeholder="Szukaj zawodnika…" @bind="_query" @bind:event="oninput" />
-            <div class="grid">
-                @foreach (var p in Filtered)
-                {
-                    <PlayerCard Player="p" />
-                }
-            </div>
-        }
+        <h1>Zawodnicy</h1>
+        @if (_players is not null) { <p class="muted">@_players.Count @(_players.Count == 1 ? "zawodnik" : "zawodników")</p> }
     </div>
-    <aside class="card">
-        <h2>Dodaj zawodnika</h2>
+    <button class="btn primary" @onclick="() => _showAdd = !_showAdd">
+        <Icon Name="@(_showAdd ? "x" : "plus")" Size="18" /> @(_showAdd ? "Zamknij" : "Dodaj zawodnika")
+    </button>
+</div>
+
+@if (_showAdd)
+{
+    <section class="card panel">
+        <h2><Icon Name="plus" /> Nowy zawodnik</h2>
         <ErrorList Errors="_errors" />
         <EditForm Model="_form" OnValidSubmit="AddAsync" class="stack" FormName="add-player">
             <DataAnnotationsValidator />
             <PlayerFields Model="_form" />
-            <button class="btn primary">Dodaj zawodnika</button>
+            <div><button class="btn primary">Dodaj zawodnika</button></div>
         </EditForm>
-    </aside>
-</div>
+    </section>
+}
+
+@if (_players is null)
+{
+    <ErrorList Errors="_loadErrors" />
+    @if (_loadErrors is null) { <p class="muted loading">Ładowanie…</p> }
+}
+else if (_players.Count == 0)
+{
+    <section class="card empty-state">
+        <Icon Name="users" Size="32" />
+        <p>Nie masz jeszcze żadnych zawodników.<br />Dodaj pierwszego przyciskiem powyżej.</p>
+    </section>
+}
+else
+{
+    <div class="search-wrap">
+        <Icon Name="search" Size="18" />
+        <input class="search" type="search" placeholder="Szukaj zawodnika…" @bind="_query" @bind:event="oninput" />
+    </div>
+    <div class="grid">
+        @foreach (var p in Filtered)
+        {
+            <PlayerCard Player="p" />
+        }
+    </div>
+}
 
 @code {
     private List<PlayerSummary>? _players;
     private IReadOnlyList<string>? _loadErrors, _errors;
     private PlayerForm _form = new();
     private string _query = "";
+    private bool _showAdd;
 
     private IEnumerable<PlayerSummary> Filtered => _players!.Where(p =>
         _query.Length == 0 || p.FullName.Contains(_query, StringComparison.CurrentCultureIgnoreCase));

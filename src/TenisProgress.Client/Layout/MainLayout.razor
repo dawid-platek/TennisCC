@@ -6,39 +6,46 @@
 @inject NavigationManager Nav
 
 <header class="topbar">
-    <a class="brand" href=""><span class="ball" aria-hidden="true"></span>Tenis Progress</a>
+    <a class="brand" href=""><span class="ball" aria-hidden="true"></span><span class="brand-name">Tenis <b>Progress</b></span></a>
     <AuthorizeView>
         <Authorized>
-            <nav>
-                <AuthorizeView Roles="@Roles.Coach" Context="coach">
-                    <Authorized>
-                        <NavLink href="players">Zawodnicy</NavLink>
-                        <NavLink href="parents">Rodzice</NavLink>
-                    </Authorized>
-                    <NotAuthorized>
-                        <NavLink href="my">Moje dzieci</NavLink>
-                    </NotAuthorized>
-                </AuthorizeView>
-                <NavLink href="account" title="Moje konto">@context.User.Identity?.Name</NavLink>
-                <button class="link" @onclick="LogoutAsync">Wyloguj</button>
+            <nav class="nav-desktop" aria-label="Główna nawigacja">
+                <NavItems IsCoach="@(Auth.User?.IsCoach == true)" />
             </nav>
+            <div class="user">
+                <NavLink class="user-chip" href="account" title="Moje konto">
+                    <span class="avatar sm">@Initials(context.User.Identity?.Name)</span>
+                    <span class="user-name">@context.User.Identity?.Name</span>
+                </NavLink>
+                <button class="icon-link" @onclick="LogoutAsync" title="Wyloguj" aria-label="Wyloguj"><Icon Name="logout" /></button>
+            </div>
         </Authorized>
     </AuthorizeView>
 </header>
+
+<AuthorizeView>
+    <Authorized>
+        <nav class="tabbar" aria-label="Nawigacja mobilna">
+            <NavItems IsCoach="@(Auth.User?.IsCoach == true)" ShowAccount="true" />
+        </nav>
+    </Authorized>
+</AuthorizeView>
+
+@if (Toasts.Current is { } toast)
+{
+    <div class="toast @(toast.Kind == ToastKind.Success ? "success" : "error")" role="status">
+        <Icon Name="@(toast.Kind == ToastKind.Success ? "check" : "alert")" />
+        <span class="grow">@toast.Text</span>
+        <button class="icon-btn" aria-label="Zamknij" @onclick="Toasts.Clear"><Icon Name="x" Size="18" /></button>
+    </div>
+}
+
 <main>
     <div id="install" class="install" hidden>
         <span class="install-text"></span>
         <button type="button" class="btn small primary install-btn" hidden>Zainstaluj</button>
-        <button type="button" class="icon-btn install-close" aria-label="Zamknij">×</button>
+        <button type="button" class="icon-btn install-close" aria-label="Zamknij"><Icon Name="x" Size="18" /></button>
     </div>
-
-    @if (Toasts.Current is { } toast)
-    {
-        <div class="flash @(toast.Kind == ToastKind.Success ? "success" : "error")" role="status">
-            <span class="grow">@toast.Text</span>
-            <button class="icon-btn" aria-label="Zamknij" @onclick="Toasts.Clear">×</button>
-        </div>
-    }
 
     @if (Auth.IsOffline)
     {
@@ -78,6 +85,9 @@
         Toasts.OnNavigated(Toasts.PathOf(Nav, e.Location));
 
     protected override void OnParametersSet() => _boundary?.Recover();
+
+    private static string Initials(string? name) =>
+        string.Concat((name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => char.ToUpperInvariant(w[0])));
 
     private async Task RetryAsync()
     {

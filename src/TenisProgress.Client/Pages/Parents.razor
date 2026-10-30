@@ -7,50 +7,36 @@
 <PageTitle>Rodzice · Tenis Progress</PageTitle>
 
 <div class="page-head">
-    <h1>Konta rodziców @if (_parents is not null) { <span class="muted">(@_parents.Count)</span> }</h1>
-</div>
-<div class="columns">
     <div>
-        <ErrorList Errors="_loadErrors" />
-        @if (_parents is { Count: 0 })
-        {
-            <section class="card"><p>Brak kont rodziców. Utwórz konto i przypisz do niego dziecko — rodzic zobaczy tylko swoje dzieci.</p></section>
-        }
-        @foreach (var p in _parents ?? [])
-        {
-            <section class="card parent">
-                <div class="parent-head">
-                    <div>
-                        <strong>@p.Name</strong>
-                        <div class="muted small">@p.Email@(p.Phone is null ? "" : $" · {p.Phone}")</div>
-                    </div>
-                    <div class="actions">
-                        <button class="btn small" @onclick="() => ResetAsync(p)">Resetuj hasło</button>
-                        <button class="btn small danger" @onclick="() => DeleteAsync(p)">Usuń</button>
-                    </div>
-                </div>
-                <div class="chips">
-                    @if (p.Children.Count == 0) { <span class="muted small">Brak przypisanych dzieci</span> }
-                    @foreach (var c in p.Children) { <a class="chip" href="players/@c.Id">@c.FullName</a> }
-                </div>
-            </section>
-        }
+        <h1>Rodzice</h1>
+        @if (_parents is not null) { <p class="muted">@_parents.Count @Plural(_parents.Count)</p> }
     </div>
-    <aside class="card">
-        <h2>Nowe konto rodzica</h2>
+    <button class="btn primary" @onclick="() => _showAdd = !_showAdd">
+        <Icon Name="@(_showAdd ? "x" : "plus")" Size="18" /> @(_showAdd ? "Zamknij" : "Nowe konto")
+    </button>
+</div>
+
+@if (_showAdd)
+{
+    <section class="card panel">
+        <h2><Icon Name="plus" /> Nowe konto rodzica</h2>
         <ErrorList Errors="_errors" />
         <EditForm Model="_form" OnValidSubmit="CreateAsync" class="stack" FormName="parent">
             <DataAnnotationsValidator />
-            <label>Imię i nazwisko <InputText @bind-Value="_form.Name" maxlength="100" /></label>
+            <div class="row2">
+                <label>Imię i nazwisko <InputText @bind-Value="_form.Name" maxlength="100" /></label>
+                <label>E-mail (login) <InputText type="email" @bind-Value="_form.Email" maxlength="200" autocomplete="off" /></label>
+            </div>
             <ValidationMessage For="() => _form.Name" />
-            <label>E-mail (login) <InputText type="email" @bind-Value="_form.Email" maxlength="200" autocomplete="off" /></label>
             <ValidationMessage For="() => _form.Email" />
-            <label>Telefon <InputText type="tel" @bind-Value="_form.Phone" maxlength="40" /></label>
-            <label>Hasło <InputText @bind-Value="_form.Password" placeholder="puste = wygeneruj automatycznie" autocomplete="off" /></label>
+            <div class="row2">
+                <label>Telefon <InputText type="tel" @bind-Value="_form.Phone" maxlength="40" /></label>
+                <label>Hasło <InputText @bind-Value="_form.Password" placeholder="puste = wygeneruj automatycznie" autocomplete="off" /></label>
+            </div>
             @if (_players is { Count: > 0 })
             {
                 <fieldset>
-                    <legend>Dzieci</legend>
+                    <legend>Dzieci tego rodzica</legend>
                     <div class="checklist">
                         @foreach (var pl in _players)
                         {
@@ -62,9 +48,40 @@
                     </div>
                 </fieldset>
             }
-            <button class="btn primary">Utwórz konto</button>
+            <div><button class="btn primary">Utwórz konto</button></div>
         </EditForm>
-    </aside>
+    </section>
+}
+
+<ErrorList Errors="_loadErrors" />
+@if (_parents is { Count: 0 })
+{
+    <section class="card empty-state">
+        <Icon Name="heart" Size="32" />
+        <p>Brak kont rodziców.<br />Utwórz konto i przypisz do niego dziecko — rodzic zobaczy tylko swoje dzieci.</p>
+    </section>
+}
+<div class="grid wide">
+    @foreach (var p in _parents ?? [])
+    {
+        <section class="card parent">
+            <div class="parent-head">
+                <span class="avatar">@Initials(p.Name)</span>
+                <div class="grow">
+                    <strong>@p.Name</strong>
+                    <div class="muted small">@p.Email@(p.Phone is null ? "" : $" · {p.Phone}")</div>
+                </div>
+            </div>
+            <div class="chips">
+                @if (p.Children.Count == 0) { <span class="muted small">Brak przypisanych dzieci</span> }
+                @foreach (var c in p.Children) { <a class="chip" href="players/@c.Id">@c.FullName</a> }
+            </div>
+            <div class="actions">
+                <button class="btn small" @onclick="() => ResetAsync(p)"><Icon Name="key" Size="16" /> Resetuj hasło</button>
+                <button class="btn small danger" @onclick="() => DeleteAsync(p)"><Icon Name="trash" Size="16" /> Usuń</button>
+            </div>
+        </section>
+    }
 </div>
 
 @code {
@@ -72,6 +89,14 @@
     private List<PlayerSummary>? _players;
     private IReadOnlyList<string>? _loadErrors, _errors;
     private ParentForm _form = new();
+    private bool _showAdd;
+
+    // Polish plural of "konto": 1 konto, 2–4 konta, 5+ kont.
+    private static string Plural(int n) =>
+        n == 1 ? "konto" : n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14 ? "konta" : "kont";
+
+    private static string Initials(string name) =>
+        string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => char.ToUpperInvariant(w[0])));
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,6 +131,7 @@
             ? $"Utworzono konto dla {_form.Name}. Login: {c.Email}, hasło tymczasowe: {pwd} — przekaż je rodzicowi (pokazujemy je tylko raz)."
             : $"Utworzono konto dla {_form.Name} (login: {c.Email}).", sticky: c.TemporaryPassword is not null);
         _form = new();
+        _showAdd = false;
         await LoadAsync();
     }
 

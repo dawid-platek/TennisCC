@@ -10,11 +10,13 @@
             <span class="muted small">Rodzice: @(parents.Count == 0 ? "brak" : string.Join(", ", parents.Select(p => p.Name)))</span>
         }
     </span>
-    <span class="score @(Player.LatestAverage is null ? "empty" : "")" title="Średnia z ostatniej oceny">
-        @(Player.LatestAverage?.ToString("0.0") ?? "–")
+    <span class="ring @(Player.LatestAverage is null ? "empty" : "")" style="--p:@Percent" title="Średnia aktualnych ocen (1–@Skills.Max)">
+        <span class="ring-in">@(Player.LatestAverage?.ToString("0.0") ?? "–")</span>
     </span>
 </a>
 
 @code {
     [Parameter, EditorRequired] public PlayerSummary Player { get; set; } = null!;
+
+    private int Percent => Player.LatestAverage is { } avg ? (int)Math.Round(avg / Skills.Max * 100) : 0;
 }

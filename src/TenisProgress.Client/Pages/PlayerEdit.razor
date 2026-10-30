@@ -7,7 +7,7 @@
 
 <PageTitle>Edycja zawodnika · Tenis Progress</PageTitle>
 
-<p><a href="players/@Id">← Wróć do profilu</a></p>
+<a class="back" href="players/@Id"><Icon Name="chevron-left" Size="18" /> Wróć do profilu</a>
 <ErrorList Errors="_errors" />
 @if (_form is not null)
 {
@@ -19,7 +19,7 @@
             <button class="btn primary">Zapisz zmiany</button>
         </EditForm>
         <hr />
-        <button class="btn danger" @onclick="DeleteAsync">Usuń zawodnika</button>
+        <button class="btn danger" @onclick="DeleteAsync"><Icon Name="trash" Size="16" /> Usuń zawodnika</button>
     </section>
 }
 

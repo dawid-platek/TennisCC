@@ -7,7 +7,7 @@
 
 <PageTitle>@(_p?.FullName ?? "Zawodnik") · Tenis Progress</PageTitle>
 
-<p><a href="@(IsCoach ? "players" : "my")">← @(IsCoach ? "Wszyscy zawodnicy" : "Moje dzieci")</a></p>
+<a class="back" href="@(IsCoach ? "players" : "my")"><Icon Name="chevron-left" Size="18" /> @(IsCoach ? "Wszyscy zawodnicy" : "Moje dzieci")</a>
 <ErrorList Errors="_loadErrors" />
 
 @if (_p is { } p)
@@ -28,7 +28,7 @@
                 @if (p.DominantHand is { } hand) { <text> · @(hand == Hand.Left ? "Leworęczny" : "Praworęczny")</text> }
             </div>
         </div>
-        @if (IsCoach) { <a class="btn" href="players/@p.Id/edit">Edytuj</a> }
+        @if (IsCoach) { <a class="btn ghost" href="players/@p.Id/edit"><Icon Name="pencil" Size="16" /> Edytuj</a> }
     </section>
 
     <div class="stats">
@@ -43,19 +43,19 @@
         <section class="card">
             @if (p.Notes is not null)
             {
-                <h2>Uwagi trenera</h2>
+                <h2><Icon Name="file" /> Uwagi trenera</h2>
                 <p class="pre">@p.Notes</p>
             }
             @if (p.PrivateNotes is not null)
             {
-                <h2>Notatki prywatne <span class="badge">tylko trener</span></h2>
+                <h2><Icon Name="lock" /> Notatki prywatne <span class="badge">tylko trener</span></h2>
                 <p class="pre">@p.PrivateNotes</p>
             }
         </section>
     }
 
     <section class="card" id="postepy">
-        <h2>Postępy</h2>
+        <h2><Icon Name="trending-up" /> Postępy</h2>
         @if (latest is null)
         {
             <p class="muted">Brak ocen. Oceny (1–6) wpisuje trener w dzienniku treningów.</p>
@@ -108,7 +108,7 @@
 
     <div class="columns even">
         <section class="card">
-            <h2>Cele</h2>
+            <h2><Icon Name="target" /> Cele</h2>
             @if (p.Goals.Count == 0) { <p class="muted">Brak celów.</p> }
             <ul class="list">
                 @foreach (var g in p.Goals)
@@ -127,7 +127,7 @@
                             @g.Title
                             @if (g.TargetDate is { } td) { <span class="muted small"> do @td.ToString("dd.MM.yyyy")</span> }
                         </span>
-                        @if (IsCoach) { <button class="icon-btn" aria-label="Usuń cel" @onclick="() => DeleteAsync(Kind.Goals, g.Id)">×</button> }
+                        @if (IsCoach) { <button class="icon-btn" aria-label="Usuń cel" @onclick="() => DeleteAsync(Kind.Goals, g.Id)"><Icon Name="x" Size="18" /></button> }
                     </li>
                 }
             </ul>
@@ -146,7 +146,7 @@
         </section>
 
         <section class="card">
-            <h2>Mecze i turnieje</h2>
+            <h2><Icon Name="trophy" /> Mecze i turnieje</h2>
             @if (p.Matches.Count == 0) { <p class="muted">Brak meczów.</p> }
             <ul class="list">
                 @foreach (var m in p.Matches)
@@ -159,7 +159,7 @@
                             <span class="muted small block">@m.Date.ToString("dd.MM.yyyy")@(m.Tournament is null ? "" : $" · {m.Tournament}")</span>
                             @if (m.Notes is not null) { <span class="small block pre">@m.Notes</span> }
                         </span>
-                        @if (IsCoach) { <button class="icon-btn" aria-label="Usuń mecz" @onclick="() => DeleteAsync(Kind.Matches, m.Id)">×</button> }
+                        @if (IsCoach) { <button class="icon-btn" aria-label="Usuń mecz" @onclick="() => DeleteAsync(Kind.Matches, m.Id)"><Icon Name="x" Size="18" /></button> }
                     </li>
                 }
             </ul>
@@ -192,7 +192,7 @@
     </div>
 
     <section class="card">
-        <h2>Dziennik treningów</h2>
+        <h2><Icon Name="clipboard" /> Dziennik treningów</h2>
         @if (p.Trainings.Count == 0) { <p class="muted">Brak wpisów.</p> }
         <ul class="list">
             @foreach (var t in p.Trainings)
@@ -215,7 +215,7 @@
                         }
                         @if (t.Notes is not null) { <span class="small block pre">@t.Notes</span> }
                     </span>
-                    @if (IsCoach) { <button class="icon-btn" aria-label="Usuń trening" @onclick="() => DeleteAsync(Kind.Trainings, t.Id)">×</button> }
+                    @if (IsCoach) { <button class="icon-btn" aria-label="Usuń trening" @onclick="() => DeleteAsync(Kind.Trainings, t.Id)"><Icon Name="x" Size="18" /></button> }
                 </li>
             }
         </ul>
@@ -257,7 +257,7 @@
     @if (p.Parents is { } parents)
     {
         <section class="card">
-            <h2>Rodzice z dostępem <span class="badge">tylko trener</span></h2>
+            <h2><Icon Name="users" /> Rodzice z dostępem <span class="badge">tylko trener</span></h2>
             <p class="muted small">Tylko te osoby (oraz trenerzy) widzą profil tego zawodnika.</p>
             <ul class="list">
                 @if (parents.Count == 0) { <li class="muted">Nikt nie ma jeszcze dostępu.</li> }
