@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+<section class="card narrow">
+  <h1>Moje konto</h1>
+  <dl class="meta">
+    <dt>Imię i nazwisko</dt><dd><%= user.name %></dd>
+    <dt>E-mail</dt><dd><%= user.email %></dd>
+    <dt>Rola</dt><dd><%= user.role === 'coach' ? 'Trener (administrator)' : 'Rodzic' %></dd>
+  </dl>
+  <h2>Zmiana hasła</h2>
+  <form method="post" action="/account/password" class="stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Obecne hasło <input type="password" name="current" required autocomplete="current-password"></label>
+    <label>Nowe hasło (min. 8 znaków) <input type="password" name="password" minlength="8" required autocomplete="new-password"></label>
+    <label>Powtórz nowe hasło <input type="password" name="password2" minlength="8" required autocomplete="new-password"></label>
+    <button class="btn primary">Zmień hasło</button>
+  </form>
+</section>
+<%- include('partials/footer') %>

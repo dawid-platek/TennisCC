@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<div class="page-head">
+  <h1>Zawodnicy <span class="muted">(<%= players.length %>)</span></h1>
+</div>
+<div class="columns">
+  <div>
+    <% if (!players.length) { %>
+      <section class="card"><p>Nie masz jeszcze żadnych zawodników. Dodaj pierwszego za pomocą formularza.</p></section>
+    <% } %>
+    <div class="grid">
+      <% players.forEach(p => { %><%- include('partials/player-card', { p }) %><% }) %>
+    </div>
+  </div>
+  <aside class="card">
+    <h2>Dodaj zawodnika</h2>
+    <form method="post" action="/players" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('partials/player-fields', { player: {} }) %>
+      <button class="btn primary">Dodaj zawodnika</button>
+    </form>
+  </aside>
+</div>
+<%- include('partials/footer') %>

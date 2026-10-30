@@ -1,0 +1,10 @@
+<%- include('partials/header') %>
+<h1>Moje dzieci</h1>
+<% if (!players.length) { %>
+  <section class="card"><p>Trener nie przypisał jeszcze do Twojego konta żadnego zawodnika.</p></section>
+<% } else { %>
+  <div class="grid">
+    <% players.forEach(p => { %><%- include('partials/player-card', { p }) %><% }) %>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

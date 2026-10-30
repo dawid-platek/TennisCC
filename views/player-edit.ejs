@@ -1,0 +1,16 @@
+<%- include('partials/header') %>
+<p><a href="/players/<%= player.id %>">← Wróć do profilu</a></p>
+<section class="card narrow wide">
+  <h1>Edycja: <%= player.first_name %> <%= player.last_name %></h1>
+  <form method="post" action="/players/<%= player.id %>/edit" class="stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('partials/player-fields', { player }) %>
+    <button class="btn primary">Zapisz zmiany</button>
+  </form>
+  <hr>
+  <form method="post" action="/players/<%= player.id %>/delete" data-confirm="Usunąć zawodnika wraz z całą historią postępów? Tej operacji nie można cofnąć.">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="btn danger">Usuń zawodnika</button>
+  </form>
+</section>
+<%- include('partials/footer') %>

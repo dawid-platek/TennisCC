@@ -1,0 +1,15 @@
+<a class="player-card" href="/players/<%= p.id %>">
+  <span class="avatar"><%= p.first_name[0] %><%= p.last_name[0] %></span>
+  <span class="info">
+    <strong><%= p.first_name %> <%= p.last_name %></strong>
+    <span class="muted small">
+      <%= p.age != null ? p.age + ' lat' : 'wiek nieznany' %><% if (p.level) { %> · <%= p.level %><% } %>
+    </span>
+    <% if (typeof p.parents !== 'undefined') { %>
+      <span class="muted small">Rodzice: <%= p.parents.length ? p.parents.map(x => x.name).join(', ') : 'brak' %></span>
+    <% } %>
+  </span>
+  <span class="score <%= p.latestAvg == null ? 'empty' : '' %>" title="Średnia z ostatniej oceny">
+    <%= p.latestAvg == null ? '–' : p.latestAvg.toFixed(1) %>
+  </span>
+</a>

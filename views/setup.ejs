@@ -1,0 +1,14 @@
+<%- include('partials/header') %>
+<section class="card narrow">
+  <h1>Witaj w Tenis Progress</h1>
+  <p class="muted">Utwórz pierwsze konto trenera (administratora). Ten formularz jest dostępny tylko do momentu utworzenia pierwszego konta.</p>
+  <% if (typeof error !== 'undefined') { %><div class="flash error"><%= error %></div><% } %>
+  <form method="post" action="/setup" class="stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Imię i nazwisko <input name="name" value="<%= values.name || '' %>" required></label>
+    <label>E-mail <input type="email" name="email" value="<%= values.email || '' %>" required autocomplete="username"></label>
+    <label>Hasło (min. 8 znaków) <input type="password" name="password" minlength="8" required autocomplete="new-password"></label>
+    <button class="btn primary">Utwórz konto trenera</button>
+  </form>
+</section>
+<%- include('partials/footer') %>
