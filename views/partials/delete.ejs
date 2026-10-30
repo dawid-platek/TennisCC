@@ -1,6 +1,0 @@
-<% if (isCoach) { %>
-<form method="post" action="/players/<%= player.id %>/<%= kind %>/<%= id %>/delete" class="inline" data-confirm="Usunąć ten wpis?">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <button class="icon-btn" title="Usuń" aria-label="Usuń">×</button>
-</form>
-<% } %>

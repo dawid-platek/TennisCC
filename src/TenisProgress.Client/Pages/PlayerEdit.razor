@@ -1,0 +1,74 @@
+@page "/players/{Id:int}/edit"
+@attribute [Authorize(Roles = Roles.Coach)]
+@inject Api Api
+@inject Toasts Toasts
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<PageTitle>Edycja zawodnika · Tenis Progress</PageTitle>
+
+<p><a href="players/@Id">← Wróć do profilu</a></p>
+<ErrorList Errors="_errors" />
+@if (_form is not null)
+{
+    <section class="card narrow wide">
+        <h1>Edycja: @_name</h1>
+        <EditForm Model="_form" OnValidSubmit="SaveAsync" class="stack" FormName="edit-player">
+            <DataAnnotationsValidator />
+            <PlayerFields Model="_form" />
+            <button class="btn primary">Zapisz zmiany</button>
+        </EditForm>
+        <hr />
+        <button class="btn danger" @onclick="DeleteAsync">Usuń zawodnika</button>
+    </section>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private PlayerForm? _form;
+    private string _name = "";
+    private IReadOnlyList<string>? _errors;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var res = await Api.Player(Id);
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        var p = res.Value!;
+        _name = p.FullName;
+        _form = new PlayerForm
+        {
+            FirstName = p.FirstName, LastName = p.LastName, BirthDate = p.BirthDate, Level = p.Level,
+            DominantHand = p.DominantHand, Notes = p.Notes, PrivateNotes = p.PrivateNotes,
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        var res = await Api.UpdatePlayer(Id, _form!);
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        Toasts.Success("Zapisano zmiany.", $"players/{Id}");
+        Nav.NavigateTo($"players/{Id}");
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Js.ConfirmAsync($"Usunąć zawodnika {_name} wraz z całą historią postępów? Tej operacji nie można cofnąć.")) return;
+        var res = await Api.DeletePlayer(Id);
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        Toasts.Success($"Usunięto zawodnika: {_name}.", "players");
+        Nav.NavigateTo("players");
+    }
+}

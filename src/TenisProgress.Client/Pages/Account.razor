@@ -1,0 +1,47 @@
+@page "/account"
+@attribute [Authorize]
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject Toasts Toasts
+
+<PageTitle>Moje konto · Tenis Progress</PageTitle>
+
+<section class="card narrow">
+    <h1>Moje konto</h1>
+    @if (Auth.User is { } user)
+    {
+        <dl class="meta">
+            <dt>Imię i nazwisko</dt><dd>@user.Name</dd>
+            <dt>E-mail</dt><dd>@user.Email</dd>
+            <dt>Rola</dt><dd>@(user.IsCoach ? "Trener (administrator)" : "Rodzic")</dd>
+        </dl>
+    }
+    <h2>Zmiana hasła</h2>
+    <ErrorList Errors="_errors" />
+    <EditForm Model="_form" OnValidSubmit="SubmitAsync" class="stack" FormName="password">
+        <DataAnnotationsValidator />
+        <label>Obecne hasło <InputText type="password" @bind-Value="_form.Current" autocomplete="current-password" /></label>
+        <ValidationMessage For="() => _form.Current" />
+        <label>Nowe hasło (min. 8 znaków) <InputText type="password" @bind-Value="_form.Password" autocomplete="new-password" /></label>
+        <ValidationMessage For="() => _form.Password" />
+        <label>Powtórz nowe hasło <InputText type="password" @bind-Value="_form.Password2" autocomplete="new-password" /></label>
+        <ValidationMessage For="() => _form.Password2" />
+        <button class="btn primary">Zmień hasło</button>
+    </EditForm>
+</section>
+
+@code {
+    private ChangePasswordRequest _form = new();
+    private IReadOnlyList<string>? _errors;
+
+    private async Task SubmitAsync()
+    {
+        var res = await Api.ChangePassword(_form);
+        _errors = res.Ok ? null : res.Errors;
+        if (res.Ok)
+        {
+            _form = new();
+            Toasts.Success("Hasło zostało zmienione. Inne urządzenia zostały wylogowane.");
+        }
+    }
+}

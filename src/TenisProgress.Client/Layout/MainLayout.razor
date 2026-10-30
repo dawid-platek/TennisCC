@@ -1,0 +1,103 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject Toasts Toasts
+@inject NavigationManager Nav
+
+<header class="topbar">
+    <a class="brand" href=""><span class="ball" aria-hidden="true"></span>Tenis Progress</a>
+    <AuthorizeView>
+        <Authorized>
+            <nav>
+                <AuthorizeView Roles="@Roles.Coach" Context="coach">
+                    <Authorized>
+                        <NavLink href="players">Zawodnicy</NavLink>
+                        <NavLink href="parents">Rodzice</NavLink>
+                    </Authorized>
+                    <NotAuthorized>
+                        <NavLink href="my">Moje dzieci</NavLink>
+                    </NotAuthorized>
+                </AuthorizeView>
+                <NavLink href="account" title="Moje konto">@context.User.Identity?.Name</NavLink>
+                <button class="link" @onclick="LogoutAsync">Wyloguj</button>
+            </nav>
+        </Authorized>
+    </AuthorizeView>
+</header>
+<main>
+    <div id="install" class="install" hidden>
+        <span class="install-text"></span>
+        <button type="button" class="btn small primary install-btn" hidden>Zainstaluj</button>
+        <button type="button" class="icon-btn install-close" aria-label="Zamknij">×</button>
+    </div>
+
+    @if (Toasts.Current is { } toast)
+    {
+        <div class="flash @(toast.Kind == ToastKind.Success ? "success" : "error")" role="status">
+            <span class="grow">@toast.Text</span>
+            <button class="icon-btn" aria-label="Zamknij" @onclick="Toasts.Clear">×</button>
+        </div>
+    }
+
+    @if (Auth.IsOffline)
+    {
+        <section class="card narrow">
+            <h1>Brak połączenia</h1>
+            <p>Nie można połączyć się z serwerem. Sprawdź internet i spróbuj ponownie.</p>
+            <button class="btn primary" @onclick="RetryAsync">Spróbuj ponownie</button>
+        </section>
+    }
+    else
+    {
+        <ErrorBoundary @ref="_boundary">
+            <ChildContent>@Body</ChildContent>
+            <ErrorContent>
+                <section class="card narrow">
+                    <h1>Coś poszło nie tak</h1>
+                    <p>Wystąpił nieoczekiwany błąd aplikacji.</p>
+                    <button class="btn" @onclick="() => _boundary?.Recover()">Spróbuj ponownie</button>
+                </section>
+            </ErrorContent>
+        </ErrorBoundary>
+    }
+</main>
+
+@code {
+    private ErrorBoundary? _boundary;
+
+    protected override void OnInitialized()
+    {
+        Toasts.Changed += OnToastsChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnToastsChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        Toasts.OnNavigated(Toasts.PathOf(Nav, e.Location));
+
+    protected override void OnParametersSet() => _boundary?.Recover();
+
+    private async Task RetryAsync()
+    {
+        Auth.Retry();
+        await Auth.GetAuthenticationStateAsync();
+        if (!Auth.IsOffline) Nav.NavigateTo(Nav.Uri, forceLoad: false, replace: true);
+        StateHasChanged();
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Api.Logout();
+        Toasts.Clear();
+        Auth.SignedOut();
+        Nav.NavigateTo("login");
+    }
+
+    public void Dispose()
+    {
+        Toasts.Changed -= OnToastsChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

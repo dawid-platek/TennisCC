@@ -1,0 +1,127 @@
+@page "/parents"
+@attribute [Authorize(Roles = Roles.Coach)]
+@inject Api Api
+@inject Toasts Toasts
+@inject IJSRuntime Js
+
+<PageTitle>Rodzice · Tenis Progress</PageTitle>
+
+<div class="page-head">
+    <h1>Konta rodziców @if (_parents is not null) { <span class="muted">(@_parents.Count)</span> }</h1>
+</div>
+<div class="columns">
+    <div>
+        <ErrorList Errors="_loadErrors" />
+        @if (_parents is { Count: 0 })
+        {
+            <section class="card"><p>Brak kont rodziców. Utwórz konto i przypisz do niego dziecko — rodzic zobaczy tylko swoje dzieci.</p></section>
+        }
+        @foreach (var p in _parents ?? [])
+        {
+            <section class="card parent">
+                <div class="parent-head">
+                    <div>
+                        <strong>@p.Name</strong>
+                        <div class="muted small">@p.Email@(p.Phone is null ? "" : $" · {p.Phone}")</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn small" @onclick="() => ResetAsync(p)">Resetuj hasło</button>
+                        <button class="btn small danger" @onclick="() => DeleteAsync(p)">Usuń</button>
+                    </div>
+                </div>
+                <div class="chips">
+                    @if (p.Children.Count == 0) { <span class="muted small">Brak przypisanych dzieci</span> }
+                    @foreach (var c in p.Children) { <a class="chip" href="players/@c.Id">@c.FullName</a> }
+                </div>
+            </section>
+        }
+    </div>
+    <aside class="card">
+        <h2>Nowe konto rodzica</h2>
+        <ErrorList Errors="_errors" />
+        <EditForm Model="_form" OnValidSubmit="CreateAsync" class="stack" FormName="parent">
+            <DataAnnotationsValidator />
+            <label>Imię i nazwisko <InputText @bind-Value="_form.Name" maxlength="100" /></label>
+            <ValidationMessage For="() => _form.Name" />
+            <label>E-mail (login) <InputText type="email" @bind-Value="_form.Email" maxlength="200" autocomplete="off" /></label>
+            <ValidationMessage For="() => _form.Email" />
+            <label>Telefon <InputText type="tel" @bind-Value="_form.Phone" maxlength="40" /></label>
+            <label>Hasło <InputText @bind-Value="_form.Password" placeholder="puste = wygeneruj automatycznie" autocomplete="off" /></label>
+            @if (_players is { Count: > 0 })
+            {
+                <fieldset>
+                    <legend>Dzieci</legend>
+                    <div class="checklist">
+                        @foreach (var pl in _players)
+                        {
+                            <label class="check">
+                                <input type="checkbox" checked="@_form.PlayerIds.Contains(pl.Id)" @onchange="e => TogglePlayer(pl.Id, e)" />
+                                @pl.FullName
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+            }
+            <button class="btn primary">Utwórz konto</button>
+        </EditForm>
+    </aside>
+</div>
+
+@code {
+    private List<ParentDto>? _parents;
+    private List<PlayerSummary>? _players;
+    private IReadOnlyList<string>? _loadErrors, _errors;
+    private ParentForm _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _players = (await Api.Players()).Value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var res = await Api.Parents();
+        _parents = res.Value;
+        _loadErrors = res.Ok ? null : res.Errors;
+    }
+
+    private void TogglePlayer(int id, ChangeEventArgs e)
+    {
+        if (e.Value is true) _form.PlayerIds.Add(id); else _form.PlayerIds.Remove(id);
+    }
+
+    private async Task CreateAsync()
+    {
+        var res = await Api.CreateParent(_form);
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        _errors = null;
+        var c = res.Value!;
+        // The temporary password is shown once and stays until dismissed.
+        Toasts.Success(c.TemporaryPassword is { } pwd
+            ? $"Utworzono konto dla {_form.Name}. Login: {c.Email}, hasło tymczasowe: {pwd} — przekaż je rodzicowi (pokazujemy je tylko raz)."
+            : $"Utworzono konto dla {_form.Name} (login: {c.Email}).", sticky: c.TemporaryPassword is not null);
+        _form = new();
+        await LoadAsync();
+    }
+
+    private async Task ResetAsync(ParentDto p)
+    {
+        if (!await Js.ConfirmAsync($"Wygenerować nowe hasło tymczasowe dla {p.Name}? Rodzic zostanie wylogowany ze wszystkich urządzeń.")) return;
+        var res = await Api.ResetParentPassword(p.Id);
+        if (res.Ok) Toasts.Success($"Nowe hasło tymczasowe dla {p.Name} ({p.Email}): {res.Value!.TemporaryPassword}", sticky: true);
+        else Toasts.Errors(res.Errors);
+    }
+
+    private async Task DeleteAsync(ParentDto p)
+    {
+        if (!await Js.ConfirmAsync($"Usunąć konto rodzica {p.Name}? Dane dzieci pozostaną.")) return;
+        var res = await Api.DeleteParent(p.Id);
+        if (res.Ok) Toasts.Success($"Usunięto konto rodzica: {p.Name}."); else Toasts.Errors(res.Errors);
+        await LoadAsync();
+    }
+}

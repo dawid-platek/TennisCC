@@ -1,0 +1,102 @@
+using TenisProgress.Shared;
+
+namespace TenisProgress.Server.Data;
+
+public enum UserRole { Coach, Parent }
+
+public class User
+{
+    public int Id { get; set; }
+    public string Email { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Phone { get; set; }
+    public string PasswordHash { get; set; } = "";
+    public UserRole Role { get; set; }
+
+    /// <summary>Changes on password reset; invalidates every existing login cookie.</summary>
+    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public List<Player> Children { get; set; } = [];
+}
+
+public class Player
+{
+    public int Id { get; set; }
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public DateOnly? BirthDate { get; set; }
+    public string? Level { get; set; }
+    public Hand? DominantHand { get; set; }
+    public string? Notes { get; set; }
+    public string? PrivateNotes { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public List<User> Parents { get; set; } = [];
+    public List<Assessment> Assessments { get; set; } = [];
+    public List<Training> Trainings { get; set; } = [];
+    public List<Match> Matches { get; set; } = [];
+    public List<Goal> Goals { get; set; } = [];
+}
+
+public class Assessment
+{
+    public int Id { get; set; }
+    public int PlayerId { get; set; }
+    public DateOnly Date { get; set; }
+    public int? Forehand { get; set; }
+    public int? Backhand { get; set; }
+    public int? Serve { get; set; }
+    public int? Volley { get; set; }
+    public int? ReturnServe { get; set; }
+    public int? Footwork { get; set; }
+    public int? Tactics { get; set; }
+    public int? Mental { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Maps the shared skill keys (Skills.All) onto the columns above.
+    public Dictionary<string, int?> GetScores() => new()
+    {
+        ["forehand"] = Forehand, ["backhand"] = Backhand, ["serve"] = Serve, ["volley"] = Volley,
+        ["returnServe"] = ReturnServe, ["footwork"] = Footwork, ["tactics"] = Tactics, ["mental"] = Mental,
+    };
+
+    public void SetScores(IReadOnlyDictionary<string, int?> s)
+    {
+        int? Get(string key) => s.TryGetValue(key, out var v) ? v : null;
+        Forehand = Get("forehand"); Backhand = Get("backhand"); Serve = Get("serve"); Volley = Get("volley");
+        ReturnServe = Get("returnServe"); Footwork = Get("footwork"); Tactics = Get("tactics"); Mental = Get("mental");
+    }
+}
+
+public class Training
+{
+    public int Id { get; set; }
+    public int PlayerId { get; set; }
+    public DateOnly Date { get; set; }
+    public string Topic { get; set; } = "";
+    public int? DurationMin { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class Match
+{
+    public int Id { get; set; }
+    public int PlayerId { get; set; }
+    public DateOnly Date { get; set; }
+    public string? Tournament { get; set; }
+    public string? Opponent { get; set; }
+    public bool Won { get; set; }
+    public string? Score { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class Goal
+{
+    public int Id { get; set; }
+    public int PlayerId { get; set; }
+    public string Title { get; set; } = "";
+    public DateOnly? TargetDate { get; set; }
+    public bool Done { get; set; }
+}

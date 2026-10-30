@@ -1,0 +1,21 @@
+@page "/"
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject NavigationManager Nav
+
+<p class="muted loading">Ładowanie…</p>
+
+@code {
+    // Entry point: send everyone to the right place for their role.
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (Auth.User is { } user)
+        {
+            Nav.NavigateTo(user.IsCoach ? "players" : "my", replace: true);
+            return;
+        }
+        var setup = await Api.SetupStatus();
+        Nav.NavigateTo(setup.Value?.NeedsSetup == true ? "setup" : "login", replace: true);
+    }
+}

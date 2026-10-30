@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Tenis Progress</title>
+    <base href="/" />
+    <meta name="theme-color" content="#1f7a4d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tenis" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+</head>
+<body>
+    <div id="app">
+        <header class="topbar">
+            <span class="brand"><span class="ball" aria-hidden="true"></span>Tenis Progress</span>
+        </header>
+        <div class="boot">
+            <span class="ball spin" aria-hidden="true"></span>
+            <p class="muted">Ładowanie aplikacji…</p>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Wystąpił nieoczekiwany błąd.
+        <a href="." class="reload">Odśwież</a>
+        <span class="dismiss">×</span>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

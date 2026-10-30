@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TenisProgress.Client/TenisProgress.Client.csproj" />
+    <Project Path="src/TenisProgress.Server/TenisProgress.Server.csproj" />
+    <Project Path="src/TenisProgress.Shared/TenisProgress.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TenisProgress.Tests/TenisProgress.Tests.csproj" />
+  </Folder>
+</Solution>

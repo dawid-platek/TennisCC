@@ -1,0 +1,20 @@
+<a class="player-card" href="players/@Player.Id">
+    <span class="avatar">@Player.Initials</span>
+    <span class="info">
+        <strong>@Player.FullName</strong>
+        <span class="muted small">
+            @(Player.Age is { } age ? $"{age} lat" : "wiek nieznany")@(Player.Level is { } level ? $" · {level}" : "")
+        </span>
+        @if (Player.Parents is { } parents)
+        {
+            <span class="muted small">Rodzice: @(parents.Count == 0 ? "brak" : string.Join(", ", parents.Select(p => p.Name)))</span>
+        }
+    </span>
+    <span class="score @(Player.LatestAverage is null ? "empty" : "")" title="Średnia z ostatniej oceny">
+        @(Player.LatestAverage?.ToString("0.0") ?? "–")
+    </span>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public PlayerSummary Player { get; set; } = null!;
+}

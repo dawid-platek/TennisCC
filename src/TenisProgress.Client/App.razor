@@ -1,0 +1,24 @@
+<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated == true)
+                {
+                    <section class="card narrow">
+                        <h1>Brak dostępu</h1>
+                        <p>Nie masz uprawnień do tej strony.</p>
+                        <a class="btn" href="">Wróć na stronę główną</a>
+                    </section>
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
+            </NotAuthorized>
+            <Authorizing>
+                <p class="muted loading">Ładowanie…</p>
+            </Authorizing>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+</Router>

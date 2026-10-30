@@ -1,0 +1,51 @@
+@page "/my"
+@attribute [Authorize]
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>Moje dzieci · Tenis Progress</PageTitle>
+
+<h1>Moje dzieci</h1>
+<ErrorList Errors="_errors" />
+@if (_players is null)
+{
+    @if (_errors is null) { <p class="muted">Ładowanie…</p> }
+}
+else if (_players.Count == 0)
+{
+    <section class="card"><p>Trener nie przypisał jeszcze do Twojego konta żadnego zawodnika.</p></section>
+}
+else
+{
+    <div class="grid">
+        @foreach (var p in _players)
+        {
+            <PlayerCard Player="p" />
+        }
+    </div>
+}
+
+@code {
+    private List<PlayerSummary>? _players;
+    private IReadOnlyList<string>? _errors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (Auth.User?.IsCoach == true)
+        {
+            Nav.NavigateTo("players", replace: true);
+            return;
+        }
+        var res = await Api.Players();
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        _players = res.Value;
+        // A parent with one child goes straight to that child's profile.
+        if (_players!.Count == 1) Nav.NavigateTo($"players/{_players[0].Id}", replace: true);
+    }
+}

@@ -1,0 +1,47 @@
+@page "/login"
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>Logowanie · Tenis Progress</PageTitle>
+
+<section class="card narrow">
+    <h1>Zaloguj się</h1>
+    <p class="muted">Trenerzy i rodzice logują się tym samym formularzem.</p>
+    <ErrorList Errors="_errors" />
+    <EditForm Model="_form" OnValidSubmit="SubmitAsync" class="stack" FormName="login">
+        <DataAnnotationsValidator />
+        <label>E-mail <InputText type="email" @bind-Value="_form.Email" autocomplete="username" autofocus /></label>
+        <ValidationMessage For="() => _form.Email" />
+        <label>Hasło <InputText type="password" @bind-Value="_form.Password" autocomplete="current-password" /></label>
+        <ValidationMessage For="() => _form.Password" />
+        <button class="btn primary" disabled="@_busy">@(_busy ? "Logowanie…" : "Zaloguj")</button>
+    </EditForm>
+    <p class="muted small">Nie masz konta? Poproś trenera o założenie konta rodzica.</p>
+</section>
+
+@code {
+    private readonly LoginRequest _form = new();
+    private IReadOnlyList<string>? _errors;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (Auth.User is not null) Nav.NavigateTo("", replace: true);
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        var res = await Api.Login(_form);
+        _busy = false;
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        Auth.SignedIn(res.Value!);
+        Nav.NavigateTo(res.Value!.IsCoach ? "players" : "my");
+    }
+}

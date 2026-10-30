@@ -1,0 +1,24 @@
+<div class="row2">
+    <label>Imię <InputText @bind-Value="Model.FirstName" maxlength="80" /></label>
+    <label>Nazwisko <InputText @bind-Value="Model.LastName" maxlength="80" /></label>
+</div>
+<ValidationMessage For="() => Model.FirstName" />
+<ValidationMessage For="() => Model.LastName" />
+<div class="row2">
+    <label>Data urodzenia <InputDate @bind-Value="Model.BirthDate" /></label>
+    <label>
+        Ręka
+        <InputSelect @bind-Value="Model.DominantHand">
+            <option value="">—</option>
+            <option value="@Hand.Right">Praworęczny</option>
+            <option value="@Hand.Left">Leworęczny</option>
+        </InputSelect>
+    </label>
+</div>
+<label>Poziom / grupa <InputText @bind-Value="Model.Level" placeholder="np. Red, Orange, Green, Yellow" maxlength="60" /></label>
+<label>Uwagi (widoczne dla rodziców) <InputTextArea @bind-Value="Model.Notes" rows="3" maxlength="4000" /></label>
+<label>Notatki prywatne trenera (niewidoczne dla rodziców) <InputTextArea @bind-Value="Model.PrivateNotes" rows="3" maxlength="4000" /></label>
+
+@code {
+    [Parameter, EditorRequired] public PlayerForm Model { get; set; } = null!;
+}

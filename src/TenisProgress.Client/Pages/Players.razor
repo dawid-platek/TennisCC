@@ -1,0 +1,71 @@
+@page "/players"
+@attribute [Authorize(Roles = Roles.Coach)]
+@inject Api Api
+@inject Toasts Toasts
+@inject NavigationManager Nav
+
+<PageTitle>Zawodnicy · Tenis Progress</PageTitle>
+
+<div class="page-head">
+    <h1>Zawodnicy @if (_players is not null) { <span class="muted">(@_players.Count)</span> }</h1>
+</div>
+<div class="columns">
+    <div>
+        @if (_players is null)
+        {
+            <ErrorList Errors="_loadErrors" />
+            @if (_loadErrors is null) { <p class="muted">Ładowanie…</p> }
+        }
+        else if (_players.Count == 0)
+        {
+            <section class="card"><p>Nie masz jeszcze żadnych zawodników. Dodaj pierwszego za pomocą formularza.</p></section>
+        }
+        else
+        {
+            <input class="search" type="search" placeholder="Szukaj zawodnika…" @bind="_query" @bind:event="oninput" />
+            <div class="grid">
+                @foreach (var p in Filtered)
+                {
+                    <PlayerCard Player="p" />
+                }
+            </div>
+        }
+    </div>
+    <aside class="card">
+        <h2>Dodaj zawodnika</h2>
+        <ErrorList Errors="_errors" />
+        <EditForm Model="_form" OnValidSubmit="AddAsync" class="stack" FormName="add-player">
+            <DataAnnotationsValidator />
+            <PlayerFields Model="_form" />
+            <button class="btn primary">Dodaj zawodnika</button>
+        </EditForm>
+    </aside>
+</div>
+
+@code {
+    private List<PlayerSummary>? _players;
+    private IReadOnlyList<string>? _loadErrors, _errors;
+    private PlayerForm _form = new();
+    private string _query = "";
+
+    private IEnumerable<PlayerSummary> Filtered => _players!.Where(p =>
+        _query.Length == 0 || p.FullName.Contains(_query, StringComparison.CurrentCultureIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var res = await Api.Players();
+        if (res.Ok) _players = res.Value; else _loadErrors = res.Errors;
+    }
+
+    private async Task AddAsync()
+    {
+        var res = await Api.CreatePlayer(_form);
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        Toasts.Success($"Dodano zawodnika: {_form.FirstName} {_form.LastName}.", $"players/{res.Value!.Id}");
+        Nav.NavigateTo($"players/{res.Value!.Id}");
+    }
+}

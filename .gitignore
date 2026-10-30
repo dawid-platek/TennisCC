@@ -1,5 +1,10 @@
-node_modules/
+bin/
+obj/
 data/
 *.db
-*.db-*
-.env
+*.db-shm
+*.db-wal
+.vs/
+.vscode/
+*.user
+TestResults/

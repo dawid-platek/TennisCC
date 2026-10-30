@@ -1,0 +1,50 @@
+@page "/setup"
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>Konfiguracja · Tenis Progress</PageTitle>
+
+<section class="card narrow">
+    <h1>Witaj w Tenis Progress</h1>
+    <p class="muted">
+        Utwórz pierwsze konto trenera (administratora). Ten formularz działa tylko do momentu utworzenia pierwszego konta.
+    </p>
+    <ErrorList Errors="_errors" />
+    <EditForm Model="_form" OnValidSubmit="SubmitAsync" class="stack" FormName="setup">
+        <DataAnnotationsValidator />
+        <label>Imię i nazwisko <InputText @bind-Value="_form.Name" /></label>
+        <ValidationMessage For="() => _form.Name" />
+        <label>E-mail <InputText type="email" @bind-Value="_form.Email" autocomplete="username" /></label>
+        <ValidationMessage For="() => _form.Email" />
+        <label>Hasło (min. 8 znaków) <InputText type="password" @bind-Value="_form.Password" autocomplete="new-password" /></label>
+        <ValidationMessage For="() => _form.Password" />
+        <button class="btn primary" disabled="@_busy">Utwórz konto trenera</button>
+    </EditForm>
+</section>
+
+@code {
+    private readonly SetupRequest _form = new();
+    private IReadOnlyList<string>? _errors;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var status = await Api.SetupStatus();
+        if (status.Value?.NeedsSetup == false) Nav.NavigateTo("login", replace: true);
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        var res = await Api.Setup(_form);
+        _busy = false;
+        if (!res.Ok)
+        {
+            _errors = res.Errors;
+            return;
+        }
+        Auth.SignedIn(res.Value!);
+        Nav.NavigateTo("players");
+    }
+}

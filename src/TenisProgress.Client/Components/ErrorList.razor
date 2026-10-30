@@ -1,0 +1,13 @@
+@if (Errors is { Count: > 0 })
+{
+    <div class="flash error" role="alert">
+        @foreach (var e in Errors)
+        {
+            <div>@e</div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<string>? Errors { get; set; }
+}

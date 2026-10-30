@@ -1,0 +1,418 @@
+@page "/players/{Id:int}"
+@attribute [Authorize]
+@inject Api Api
+@inject AppAuthStateProvider Auth
+@inject Toasts Toasts
+@inject IJSRuntime Js
+
+<PageTitle>@(_p?.FullName ?? "Zawodnik") · Tenis Progress</PageTitle>
+
+<p><a href="@(IsCoach ? "players" : "my")">← @(IsCoach ? "Wszyscy zawodnicy" : "Moje dzieci")</a></p>
+<ErrorList Errors="_loadErrors" />
+
+@if (_p is { } p)
+{
+    var latest = p.Assessments.FirstOrDefault();
+    var previous = p.Assessments.Skip(1).FirstOrDefault();
+    var wins = p.Matches.Count(m => m.Won);
+
+    <section class="card hero">
+        <span class="avatar big">@p.Initials</span>
+        <div class="grow">
+            <h1>@p.FullName</h1>
+            <div class="muted">
+                @if (p.Age is { } age) { <text>@age lat </text> }
+                @if (p.BirthDate is { } bd) { <text>(ur. @bd.ToString("dd.MM.yyyy"))</text> }
+                @if (p.Level is { } level) { <text> · Poziom: <strong>@level</strong></text> }
+                @if (p.DominantHand is { } hand) { <text> · @(hand == Hand.Left ? "Leworęczny" : "Praworęczny")</text> }
+            </div>
+        </div>
+        @if (IsCoach) { <a class="btn" href="players/@p.Id/edit">Edytuj</a> }
+    </section>
+
+    <div class="stats">
+        <div class="stat"><span class="num">@(latest?.Average?.ToString("0.0") ?? "–")</span><span class="lbl">Średnia ocena</span></div>
+        <div class="stat"><span class="num">@p.Trainings.Count</span><span class="lbl">Treningi</span></div>
+        <div class="stat"><span class="num">@wins–@(p.Matches.Count - wins)</span><span class="lbl">Mecze W–P</span></div>
+        <div class="stat"><span class="num">@p.Goals.Count(g => g.Done)/@p.Goals.Count</span><span class="lbl">Cele osiągnięte</span></div>
+    </div>
+
+    @if (p.Notes is not null || p.PrivateNotes is not null)
+    {
+        <section class="card">
+            @if (p.Notes is not null)
+            {
+                <h2>Uwagi trenera</h2>
+                <p class="pre">@p.Notes</p>
+            }
+            @if (p.PrivateNotes is not null)
+            {
+                <h2>Notatki prywatne <span class="badge">tylko trener</span></h2>
+                <p class="pre">@p.PrivateNotes</p>
+            }
+        </section>
+    }
+
+    <section class="card">
+        <h2>Umiejętności</h2>
+        @if (latest is null)
+        {
+            <p class="muted">Brak ocen umiejętności.</p>
+        }
+        else
+        {
+            <p class="muted small">
+                Ostatnia ocena: @latest.Date.ToString("dd.MM.yyyy")
+                @if (previous is not null) { <text> · porównanie z @previous.Date.ToString("dd.MM.yyyy")</text> }
+            </p>
+            <div class="skills">
+                @foreach (var skill in Skills.All)
+                {
+                    var v = latest.Scores.GetValueOrDefault(skill.Key);
+                    var pv = previous?.Scores.GetValueOrDefault(skill.Key);
+                    <div class="skill">
+                        <span class="skill-name">@skill.Label</span>
+                        <span class="bar"><span style="width: @((v ?? 0) * 10)%"></span></span>
+                        <span class="skill-val">
+                            @(v?.ToString() ?? "–")
+                            @if (v is { } cur && pv is { } prev && cur != prev)
+                            {
+                                <span class="delta @(cur > prev ? "up" : "down")">@(cur > prev ? "▲" : "▼")@Math.Abs(cur - prev)</span>
+                            }
+                        </span>
+                    </div>
+                }
+            </div>
+            @if (latest.Comment is not null) { <p class="pre comment">@latest.Comment</p> }
+        }
+
+        @if (p.Assessments.Count >= 2)
+        {
+            <h3>Średnia ocena w czasie</h3>
+            <ProgressChart Assessments="p.Assessments" />
+        }
+
+        @if (p.Assessments.Count > 0)
+        {
+            <details>
+                <summary>Historia ocen (@p.Assessments.Count)</summary>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                @foreach (var s in Skills.All) { <th>@s.Label</th> }
+                                <th>Śr.</th>
+                                @if (IsCoach) { <th></th> }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in p.Assessments)
+                            {
+                                <tr>
+                                    <td>@a.Date.ToString("dd.MM.yyyy")</td>
+                                    @foreach (var s in Skills.All) { <td>@(a.Scores.GetValueOrDefault(s.Key)?.ToString() ?? "–")</td> }
+                                    <td><strong>@(a.Average?.ToString("0.0") ?? "–")</strong></td>
+                                    @if (IsCoach)
+                                    {
+                                        <td><button class="icon-btn" title="Usuń" aria-label="Usuń ocenę" @onclick="() => DeleteAsync(Kind.Assessments, a.Id)">×</button></td>
+                                    }
+                                </tr>
+                                @if (a.Comment is not null)
+                                {
+                                    <tr class="sub"><td colspan="@(Skills.All.Count + 3)">@a.Comment</td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        }
+
+        @if (IsCoach)
+        {
+            <AddSection Title="Nowa ocena umiejętności" @bind-Open="_open[Kind.Assessments]">
+                <EditForm Model="_assessment" OnValidSubmit="() => AddAsync(Kind.Assessments, _assessment)" class="stack" FormName="assessment">
+                    <DataAnnotationsValidator />
+                    <label>Data <InputDate @bind-Value="_assessment.Date" /></label>
+                    <div class="score-grid">
+                        @foreach (var box in _scores)
+                        {
+                            <label>@box.Label <input type="number" min="1" max="10" @bind="box.Value" /></label>
+                        }
+                    </div>
+                    <p class="muted small">Skala 1–10. Pola wstępnie wypełnione ostatnią oceną; puste pole = brak oceny.</p>
+                    <label>Komentarz <InputTextArea @bind-Value="_assessment.Comment" rows="2" maxlength="2000" /></label>
+                    <ValidationSummary />
+                    <button class="btn primary">Zapisz ocenę</button>
+                </EditForm>
+            </AddSection>
+        }
+    </section>
+
+    <div class="columns even">
+        <section class="card">
+            <h2>Cele</h2>
+            @if (p.Goals.Count == 0) { <p class="muted">Brak celów.</p> }
+            <ul class="list">
+                @foreach (var g in p.Goals)
+                {
+                    <li class="@(g.Done ? "done" : "")">
+                        @if (IsCoach)
+                        {
+                            <button class="check-btn" title="@(g.Done ? "Oznacz jako nieosiągnięty" : "Oznacz jako osiągnięty")"
+                                    @onclick="() => ToggleGoalAsync(g.Id)">@(g.Done ? "✓" : "")</button>
+                        }
+                        else
+                        {
+                            <span class="check-btn">@(g.Done ? "✓" : "")</span>
+                        }
+                        <span class="grow">
+                            @g.Title
+                            @if (g.TargetDate is { } td) { <span class="muted small"> do @td.ToString("dd.MM.yyyy")</span> }
+                        </span>
+                        @if (IsCoach) { <button class="icon-btn" aria-label="Usuń cel" @onclick="() => DeleteAsync(Kind.Goals, g.Id)">×</button> }
+                    </li>
+                }
+            </ul>
+            @if (IsCoach)
+            {
+                <AddSection Title="Nowy cel" @bind-Open="_open[Kind.Goals]">
+                    <EditForm Model="_goal" OnValidSubmit="() => AddAsync(Kind.Goals, _goal)" class="stack" FormName="goal">
+                        <DataAnnotationsValidator />
+                        <label>Cel <InputText @bind-Value="_goal.Title" maxlength="300" placeholder="np. 70% pierwszego serwisu w korcie" /></label>
+                        <ValidationMessage For="() => _goal.Title" />
+                        <label>Termin <InputDate @bind-Value="_goal.TargetDate" /></label>
+                        <button class="btn primary">Dodaj cel</button>
+                    </EditForm>
+                </AddSection>
+            }
+        </section>
+
+        <section class="card">
+            <h2>Mecze i turnieje</h2>
+            @if (p.Matches.Count == 0) { <p class="muted">Brak meczów.</p> }
+            <ul class="list">
+                @foreach (var m in p.Matches)
+                {
+                    <li>
+                        <span class="result @(m.Won ? "W" : "L")">@(m.Won ? "W" : "P")</span>
+                        <span class="grow">
+                            @(m.Opponent is null ? "Mecz" : $"vs {m.Opponent}")
+                            @if (m.Score is not null) { <text>&nbsp;</text><strong>@m.Score</strong> }
+                            <span class="muted small block">@m.Date.ToString("dd.MM.yyyy")@(m.Tournament is null ? "" : $" · {m.Tournament}")</span>
+                            @if (m.Notes is not null) { <span class="small block pre">@m.Notes</span> }
+                        </span>
+                        @if (IsCoach) { <button class="icon-btn" aria-label="Usuń mecz" @onclick="() => DeleteAsync(Kind.Matches, m.Id)">×</button> }
+                    </li>
+                }
+            </ul>
+            @if (IsCoach)
+            {
+                <AddSection Title="Nowy mecz" @bind-Open="_open[Kind.Matches]">
+                    <EditForm Model="_match" OnValidSubmit="() => AddAsync(Kind.Matches, _match)" class="stack" FormName="match">
+                        <DataAnnotationsValidator />
+                        <div class="row2">
+                            <label>Data <InputDate @bind-Value="_match.Date" /></label>
+                            <label>
+                                Wynik
+                                <InputSelect @bind-Value="_match.Won">
+                                    <option value="true">Wygrana</option>
+                                    <option value="false">Przegrana</option>
+                                </InputSelect>
+                            </label>
+                        </div>
+                        <label>Turniej <InputText @bind-Value="_match.Tournament" maxlength="200" /></label>
+                        <div class="row2">
+                            <label>Przeciwnik <InputText @bind-Value="_match.Opponent" maxlength="200" /></label>
+                            <label>Wynik w setach <InputText @bind-Value="_match.Score" maxlength="60" placeholder="6:4 3:6 10:8" /></label>
+                        </div>
+                        <label>Uwagi <InputTextArea @bind-Value="_match.Notes" rows="2" maxlength="2000" /></label>
+                        <button class="btn primary">Dodaj mecz</button>
+                    </EditForm>
+                </AddSection>
+            }
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Dziennik treningów</h2>
+        @if (p.Trainings.Count == 0) { <p class="muted">Brak wpisów.</p> }
+        <ul class="list">
+            @foreach (var t in p.Trainings)
+            {
+                <li>
+                    <span class="date-pill">@t.Date.ToString("dd.MM.yyyy")</span>
+                    <span class="grow">
+                        <strong>@t.Topic</strong>@if (t.DurationMin is { } min) { <span class="muted small"> · @min min</span> }
+                        @if (t.Notes is not null) { <span class="small block pre">@t.Notes</span> }
+                    </span>
+                    @if (IsCoach) { <button class="icon-btn" aria-label="Usuń trening" @onclick="() => DeleteAsync(Kind.Trainings, t.Id)">×</button> }
+                </li>
+            }
+        </ul>
+        @if (IsCoach)
+        {
+            <AddSection Title="Nowy trening" @bind-Open="_open[Kind.Trainings]">
+                <EditForm Model="_training" OnValidSubmit="() => AddAsync(Kind.Trainings, _training)" class="stack" FormName="training">
+                    <DataAnnotationsValidator />
+                    <div class="row2">
+                        <label>Data <InputDate @bind-Value="_training.Date" /></label>
+                        <label>Czas (min) <InputNumber @bind-Value="_training.DurationMin" min="1" max="600" /></label>
+                    </div>
+                    <label>Temat <InputText @bind-Value="_training.Topic" maxlength="200" placeholder="np. Serwis – rzut piłki, trafienie w pole" /></label>
+                    <ValidationMessage For="() => _training.Topic" />
+                    <label>Notatki <InputTextArea @bind-Value="_training.Notes" rows="2" maxlength="2000" /></label>
+                    <button class="btn primary">Dodaj trening</button>
+                </EditForm>
+            </AddSection>
+        }
+    </section>
+
+    @if (p.Parents is { } parents)
+    {
+        <section class="card">
+            <h2>Rodzice z dostępem <span class="badge">tylko trener</span></h2>
+            <p class="muted small">Tylko te osoby (oraz trenerzy) widzą profil tego zawodnika.</p>
+            <ul class="list">
+                @if (parents.Count == 0) { <li class="muted">Nikt nie ma jeszcze dostępu.</li> }
+                @foreach (var pr in parents)
+                {
+                    <li>
+                        <span class="grow"><strong>@pr.Name</strong> <span class="muted small">@pr.Email</span></span>
+                        <button class="btn small" @onclick="() => UnlinkAsync(pr)">Odłącz</button>
+                    </li>
+                }
+            </ul>
+            @{ var available = _allParents.Where(a => parents.All(x => x.Id != a.Id)).ToList(); }
+            @if (available.Count > 0)
+            {
+                <div class="row-form">
+                    <select @bind="_parentToLink">
+                        <option value="0">Wybierz rodzica…</option>
+                        @foreach (var a in available) { <option value="@a.Id">@a.Name (@a.Email)</option> }
+                    </select>
+                    <button class="btn" disabled="@(_parentToLink == 0)" @onclick="LinkAsync">Przypisz</button>
+                </div>
+            }
+            <p class="small"><a href="parents">Utwórz nowe konto rodzica →</a></p>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private static class Kind
+    {
+        public const string Assessments = "assessments", Trainings = "trainings", Matches = "matches", Goals = "goals";
+    }
+
+    // Binds one number input to one entry of AssessmentForm.Scores (inputs can't bind to an indexer directly).
+    private sealed class ScoreBox(Skill skill, Dictionary<string, int?> scores)
+    {
+        public string Label => skill.Label;
+        public int? Value { get => scores[skill.Key]; set => scores[skill.Key] = value; }
+    }
+
+    private PlayerDetail? _p;
+    private IReadOnlyList<string>? _loadErrors;
+    private List<ParentDto> _allParents = [];
+    private int _parentToLink;
+
+    private readonly Dictionary<string, bool> _open = new()
+    {
+        [Kind.Assessments] = false, [Kind.Trainings] = false, [Kind.Matches] = false, [Kind.Goals] = false,
+    };
+    private AssessmentForm _assessment = new();
+    private List<ScoreBox> _scores = [];
+    private TrainingForm _training = new();
+    private MatchForm _match = new();
+    private GoalForm _goal = new();
+
+    private bool IsCoach => Auth.User?.IsCoach == true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        await LoadAsync();
+        if (IsCoach && _p is not null)
+        {
+            var parents = await Api.Parents();
+            _allParents = parents.Value ?? [];
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        var res = await Api.Player(Id);
+        _loadErrors = res.Ok ? null : res.Errors;
+        _p = res.Value;
+        ResetScores();
+    }
+
+    // New assessments start from the latest scores, so the coach only adjusts what changed.
+    private void ResetScores()
+    {
+        var latest = _p?.Assessments.FirstOrDefault();
+        _assessment = new AssessmentForm();
+        foreach (var s in Skills.All) _assessment.Scores[s.Key] = latest?.Scores.GetValueOrDefault(s.Key);
+        _scores = Skills.All.Select(s => new ScoreBox(s, _assessment.Scores)).ToList();
+    }
+
+    private async Task AddAsync(string kind, object form)
+    {
+        var res = await Api.AddRecord(Id, kind, form);
+        if (!res.Ok)
+        {
+            Toasts.Errors(res.Errors);
+            return;
+        }
+        _open[kind] = false;
+        switch (kind)
+        {
+            case Kind.Trainings: _training = new(); break;
+            case Kind.Matches: _match = new(); break;
+            case Kind.Goals: _goal = new(); break;
+        }
+        Toasts.Success(kind switch
+        {
+            Kind.Assessments => "Zapisano ocenę umiejętności.",
+            Kind.Trainings => "Dodano trening.",
+            Kind.Matches => "Dodano mecz.",
+            _ => "Dodano cel.",
+        });
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(string kind, int recordId)
+    {
+        if (!await Js.ConfirmAsync("Usunąć ten wpis?")) return;
+        var res = await Api.DeleteRecord(Id, kind, recordId);
+        if (res.Ok) Toasts.Success("Usunięto wpis."); else Toasts.Errors(res.Errors);
+        await LoadAsync();
+    }
+
+    private async Task ToggleGoalAsync(int goalId)
+    {
+        var res = await Api.ToggleGoal(Id, goalId);
+        if (!res.Ok) Toasts.Errors(res.Errors);
+        await LoadAsync();
+    }
+
+    private async Task LinkAsync()
+    {
+        var res = await Api.LinkParent(Id, _parentToLink);
+        if (res.Ok) Toasts.Success("Przypisano rodzica."); else Toasts.Errors(res.Errors);
+        _parentToLink = 0;
+        await LoadAsync();
+    }
+
+    private async Task UnlinkAsync(ParentRef parent)
+    {
+        if (!await Js.ConfirmAsync($"Odebrać dostęp: {parent.Name}?")) return;
+        var res = await Api.UnlinkParent(Id, parent.Id);
+        if (res.Ok) Toasts.Success("Odłączono rodzica od zawodnika."); else Toasts.Errors(res.Errors);
+        await LoadAsync();
+    }
+}
