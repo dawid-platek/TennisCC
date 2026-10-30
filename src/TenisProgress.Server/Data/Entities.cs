@@ -33,41 +33,9 @@ public class Player
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<User> Parents { get; set; } = [];
-    public List<Assessment> Assessments { get; set; } = [];
     public List<Training> Trainings { get; set; } = [];
     public List<Match> Matches { get; set; } = [];
     public List<Goal> Goals { get; set; } = [];
-}
-
-public class Assessment
-{
-    public int Id { get; set; }
-    public int PlayerId { get; set; }
-    public DateOnly Date { get; set; }
-    public int? Forehand { get; set; }
-    public int? Backhand { get; set; }
-    public int? Serve { get; set; }
-    public int? Volley { get; set; }
-    public int? ReturnServe { get; set; }
-    public int? Footwork { get; set; }
-    public int? Tactics { get; set; }
-    public int? Mental { get; set; }
-    public string? Comment { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    // Maps the shared skill keys (Skills.All) onto the columns above.
-    public Dictionary<string, int?> GetScores() => new()
-    {
-        ["forehand"] = Forehand, ["backhand"] = Backhand, ["serve"] = Serve, ["volley"] = Volley,
-        ["returnServe"] = ReturnServe, ["footwork"] = Footwork, ["tactics"] = Tactics, ["mental"] = Mental,
-    };
-
-    public void SetScores(IReadOnlyDictionary<string, int?> s)
-    {
-        int? Get(string key) => s.TryGetValue(key, out var v) ? v : null;
-        Forehand = Get("forehand"); Backhand = Get("backhand"); Serve = Get("serve"); Volley = Get("volley");
-        ReturnServe = Get("returnServe"); Footwork = Get("footwork"); Tactics = Get("tactics"); Mental = Get("mental");
-    }
 }
 
 public class Training
@@ -78,6 +46,26 @@ public class Training
     public string Topic { get; set; } = "";
     public int? DurationMin { get; set; }
     public string? Notes { get; set; }
+
+    // Ratings 1–6 per element; null = not rated in this training.
+    public int? Forehand { get; set; }
+    public int? Backhand { get; set; }
+    public int? Volley { get; set; }
+    public int? Serve { get; set; }
+    public int? Movement { get; set; }
+
+    // Maps the shared skill keys (Skills.All) onto the columns above.
+    public Dictionary<string, int?> GetScores() => new()
+    {
+        ["forehand"] = Forehand, ["backhand"] = Backhand, ["volley"] = Volley, ["serve"] = Serve, ["movement"] = Movement,
+    };
+
+    public void SetScores(IReadOnlyDictionary<string, int?> s)
+    {
+        int? Get(string key) => s.TryGetValue(key, out var v) ? v : null;
+        Forehand = Get("forehand"); Backhand = Get("backhand"); Volley = Get("volley");
+        Serve = Get("serve"); Movement = Get("movement");
+    }
 }
 
 public class Match

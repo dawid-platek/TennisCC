@@ -1,0 +1,70 @@
+@* Line chart of training ratings (1–6) over time, one line per skill, drawn as inline SVG. *@
+@if (_points.Count >= 2)
+{
+    <svg class="chart @(Compact ? "compact" : "")" viewBox="0 0 @F(W) @F(H)" role="img" aria-label="@Label">
+        @for (var v = Skills.Min; v <= Skills.Max; v++)
+        {
+            @* <g> wrappers: a bare <text> inside a code block is Razor's own tag. *@
+            <g>
+                <line class="gridline" x1="@F(L)" x2="@F(W - R)" y1="@F(Y(v))" y2="@F(Y(v))" />
+                <text class="axis" x="@F(L - 8)" y="@F(Y(v) + 4)" text-anchor="end">@v</text>
+            </g>
+        }
+        @for (var i = 0; i < _points.Count; i++)
+        {
+            if (i % _labelStep == 0 || i == _points.Count - 1)
+            {
+                <g><text class="axis" x="@F(X(i))" y="@F(H - 8)" text-anchor="middle">@_points[i].Date.ToString("dd.MM")</text></g>
+            }
+        }
+        @foreach (var skill in Shown)
+        {
+            var coords = _points.Select((p, i) => (p, i)).Where(t => t.p.Scores.GetValueOrDefault(skill.Key).HasValue).ToList();
+            if (coords.Count == 0) continue;
+            <polyline class="line k-@skill.Key" points="@string.Join(" ", coords.Select(t => $"{F(X(t.i))},{F(Y(t.p.Scores[skill.Key]!.Value))}"))" />
+            @foreach (var (p, i) in coords)
+            {
+                <circle class="k-@skill.Key" cx="@F(X(i))" cy="@F(Y(p.Scores[skill.Key]!.Value))" r="3.5">
+                    <title>@skill.Label, @p.Date.ToString("dd.MM.yyyy"): @p.Scores[skill.Key]</title>
+                </circle>
+            }
+        }
+    </svg>
+}
+
+@code {
+    private const double T = 14;
+    private double R => Compact ? 14 : 30;
+    private double W => Compact ? 320 : 640;
+    private double H => Compact ? 150 : 260;
+    private double L => 26;
+    private double B => Compact ? 30 : 40;
+
+    /// <summary>Trainings in any order; only rated ones are plotted, oldest → newest.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TrainingDto> Trainings { get; set; } = [];
+
+    /// <summary>Which elements to draw (all five by default).</summary>
+    [Parameter] public IReadOnlyList<Skill>? Only { get; set; }
+
+    /// <summary>Small version for a single element.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Wykres postępów";
+
+    private IReadOnlyList<Skill> Shown => Only ?? Skills.All;
+
+    private List<TrainingDto> _points = [];
+    private int _labelStep = 1;
+
+    protected override void OnParametersSet()
+    {
+        _points = Trainings
+            .Where(t => Shown.Any(s => t.Scores.GetValueOrDefault(s.Key).HasValue))
+            .OrderBy(t => t.Date).ThenBy(t => t.Id).ToList();
+        _labelStep = Math.Max(1, (int)Math.Ceiling(_points.Count / (Compact ? 4.0 : 8.0)));
+    }
+
+    private double X(int i) => L + i * (W - L - R) / (_points.Count - 1);
+    private double Y(double v) => T + (Skills.Max - v) * (H - T - B) / (Skills.Max - Skills.Min);
+    private static string F(double d) => d.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+}

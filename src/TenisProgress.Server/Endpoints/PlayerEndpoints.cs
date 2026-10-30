@@ -22,14 +22,20 @@ public static class PlayerEndpoints
                 .Select(p => new
                 {
                     Player = p,
-                    Latest = p.Assessments.OrderByDescending(a => a.Date).ThenByDescending(a => a.Id).FirstOrDefault(),
+                    Rated = p.Trainings
+                        .Where(t => t.Forehand != null || t.Backhand != null || t.Volley != null || t.Serve != null || t.Movement != null)
+                        .OrderByDescending(t => t.Date).ThenByDescending(t => t.Id)
+                        .Select(t => new { t.Forehand, t.Backhand, t.Volley, t.Serve, t.Movement }).ToList(),
                     Parents = p.Parents.OrderBy(u => u.Name).Select(u => new ParentRef(u.Id, u.Name, u.Email)).ToList(),
                 })
                 .AsNoTracking().ToListAsync();
 
             return players.Select(x => new PlayerSummary(
                 x.Player.Id, x.Player.FirstName, x.Player.LastName, Age(x.Player.BirthDate), x.Player.Level,
-                x.Latest is null ? null : Average(x.Latest),
+                Skills.LatestAverage(x.Rated.Select(r => (IReadOnlyDictionary<string, int?>)new Dictionary<string, int?>
+                {
+                    ["forehand"] = r.Forehand, ["backhand"] = r.Backhand, ["volley"] = r.Volley, ["serve"] = r.Serve, ["movement"] = r.Movement,
+                })),
                 user.IsCoach ? x.Parents : null));
         });
 
@@ -38,7 +44,7 @@ public static class PlayerEndpoints
             var user = CurrentUser.From(principal);
             // Same 404 for "doesn't exist" and "not your child", so ids can't be probed.
             var p = await db.Players.VisibleTo(user)
-                .Include(p => p.Assessments).Include(p => p.Trainings).Include(p => p.Matches)
+                .Include(p => p.Trainings).Include(p => p.Matches)
                 .Include(p => p.Goals).Include(p => p.Parents)
                 .AsSplitQuery().AsNoTracking()
                 .SingleOrDefaultAsync(p => p.Id == id);
@@ -48,10 +54,8 @@ public static class PlayerEndpoints
                 p.Id, p.FirstName, p.LastName, p.BirthDate, Age(p.BirthDate), p.Level, p.DominantHand, p.Notes,
                 user.IsCoach ? p.PrivateNotes : null,
                 user.IsCoach ? p.Parents.OrderBy(u => u.Name).Select(u => new ParentRef(u.Id, u.Name, u.Email)).ToList() : null,
-                p.Assessments.OrderByDescending(a => a.Date).ThenByDescending(a => a.Id)
-                    .Select(a => new AssessmentDto(a.Id, a.Date, a.GetScores(), a.Comment)).ToList(),
                 p.Trainings.OrderByDescending(t => t.Date).ThenByDescending(t => t.Id)
-                    .Select(t => new TrainingDto(t.Id, t.Date, t.Topic, t.DurationMin, t.Notes)).ToList(),
+                    .Select(t => new TrainingDto(t.Id, t.Date, t.Topic, t.DurationMin, t.Notes, t.GetScores())).ToList(),
                 p.Matches.OrderByDescending(m => m.Date).ThenByDescending(m => m.Id)
                     .Select(m => new MatchDto(m.Id, m.Date, m.Tournament, m.Opponent, m.Won, m.Score, m.Notes)).ToList(),
                 p.Goals.OrderBy(g => g.Done).ThenBy(g => g.TargetDate == null).ThenBy(g => g.TargetDate).ThenBy(g => g.Id)
@@ -102,18 +106,15 @@ public static class PlayerEndpoints
             return Results.NoContent();
         });
 
-        coach.MapPost("/{id:int}/assessments", (int id, AssessmentForm f, AppDbContext db) =>
-        {
-            var a = new Assessment { PlayerId = id, Date = f.Date!.Value, Comment = f.Comment.Clean() };
-            a.SetScores(f.Scores);
-            return AddRecord(db, id, a);
-        }).Validate<AssessmentForm>();
-
         coach.MapPost("/{id:int}/trainings", (int id, TrainingForm f, AppDbContext db) =>
-            AddRecord(db, id, new Training
+        {
+            var training = new Training
             {
                 PlayerId = id, Date = f.Date!.Value, Topic = f.Topic.Trim(), DurationMin = f.DurationMin, Notes = f.Notes.Clean(),
-            })).Validate<TrainingForm>();
+            };
+            training.SetScores(f.Scores ?? []);
+            return AddRecord(db, id, training);
+        }).Validate<TrainingForm>();
 
         coach.MapPost("/{id:int}/matches", (int id, MatchForm f, AppDbContext db) =>
             AddRecord(db, id, new Match
@@ -131,7 +132,6 @@ public static class PlayerEndpoints
                 .ExecuteUpdateAsync(s => s.SetProperty(g => g.Done, g => !g.Done)) > 0
                 ? Results.NoContent() : Results.NotFound());
 
-        coach.MapDelete("/{id:int}/assessments/{rid:int}", (int id, int rid, AppDbContext db) => DeleteRecord(db.Assessments, id, rid));
         coach.MapDelete("/{id:int}/trainings/{rid:int}", (int id, int rid, AppDbContext db) => DeleteRecord(db.Trainings, id, rid));
         coach.MapDelete("/{id:int}/matches/{rid:int}", (int id, int rid, AppDbContext db) => DeleteRecord(db.Matches, id, rid));
         coach.MapDelete("/{id:int}/goals/{rid:int}", (int id, int rid, AppDbContext db) => DeleteRecord(db.Goals, id, rid));
@@ -158,12 +158,6 @@ public static class PlayerEndpoints
         p.DominantHand = f.DominantHand;
         p.Notes = f.Notes.Clean();
         p.PrivateNotes = f.PrivateNotes.Clean();
-    }
-
-    private static double? Average(Assessment a)
-    {
-        var values = a.GetScores().Values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
-        return values.Count == 0 ? null : values.Average();
     }
 
     public static int? Age(DateOnly? birth)

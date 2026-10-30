@@ -81,19 +81,17 @@ public static class Commands
                 FirstName = k.First, LastName = k.Last, BirthDate = k.Birth, Level = k.Level, DominantHand = k.Hand,
                 Notes = "Bardzo zaangażowany zawodnik, regularna frekwencja.", Parents = [k.Parent],
             };
-            var start = 3 + rnd.Next(2);
-            for (var i = 0; i < 4; i++)
+            // Ten weekly trainings; every rating improves a bit over time (scale 1–6).
+            var start = 1 + rnd.Next(2);
+            string[] topics = ["Serwis – rzut piłki i rytm", "Forhend po przekątnej", "Bekhend – przygotowanie", "Wolej przy siatce",
+                "Poruszanie się – praca nóg", "Gra punktowa", "Return serwisu", "Mini-turniej"];
+            for (var i = 0; i < topics.Length; i++)
             {
-                var a = new Assessment
-                {
-                    Date = new DateOnly(2026, 3 + 2 * i, 1),
-                    Comment = i == 3 ? "Wyraźny postęp w regularności wymian." : null,
-                };
-                a.SetScores(Skills.All.ToDictionary(s => s.Key, _ => (int?)Math.Min(10, start + i + rnd.Next(2))));
-                player.Assessments.Add(a);
+                var t = new Training { Date = new DateOnly(2026, 9, 1).AddDays(7 * i), Topic = topics[i], DurationMin = 60 };
+                t.SetScores(Skills.All.ToDictionary(s => s.Key, _ => (int?)Math.Clamp(start + i / 2 + rnd.Next(2), Skills.Min, Skills.Max)));
+                player.Trainings.Add(t);
             }
-            player.Trainings.Add(new Training { Date = new(2026, 9, 10), Topic = "Serwis – rzut piłki i rytm", DurationMin = 60 });
-            player.Matches.Add(new Match { Date = new(2026, 9, 20), Tournament = "Turniej Klubowy", Opponent = "J. Kowalski", Won = true, Score = "6:3 6:4" });
+            player.Matches.Add(new Match { Date = new(2026, 10, 20), Tournament = "Turniej Klubowy", Opponent = "J. Kowalski", Won = true, Score = "6:3 6:4" });
             player.Goals.Add(new Goal { Title = "20 wymian z rzędu z linii końcowej", TargetDate = new(2026, 12, 31) });
             db.Players.Add(player);
         }

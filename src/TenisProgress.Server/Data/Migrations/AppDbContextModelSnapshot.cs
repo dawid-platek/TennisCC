@@ -32,55 +32,6 @@ namespace TenisProgress.Server.Data.Migrations
                     b.ToTable("PlayerParents");
                 });
 
-            modelBuilder.Entity("TenisProgress.Server.Data.Assessment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Backhand")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("Footwork")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Forehand")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Mental")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ReturnServe")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Serve")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Tactics")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Volley")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerId", "Date");
-
-                    b.ToTable("Assessments");
-                });
-
             modelBuilder.Entity("TenisProgress.Server.Data.Goal", b =>
                 {
                     b.Property<int>("Id")
@@ -185,10 +136,19 @@ namespace TenisProgress.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("Backhand")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateOnly>("Date")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("DurationMin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Forehand")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Movement")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Notes")
@@ -197,9 +157,15 @@ namespace TenisProgress.Server.Data.Migrations
                     b.Property<int>("PlayerId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("Serve")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Topic")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("Volley")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -267,15 +233,6 @@ namespace TenisProgress.Server.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TenisProgress.Server.Data.Assessment", b =>
-                {
-                    b.HasOne("TenisProgress.Server.Data.Player", null)
-                        .WithMany("Assessments")
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("TenisProgress.Server.Data.Goal", b =>
                 {
                     b.HasOne("TenisProgress.Server.Data.Player", null)
@@ -305,8 +262,6 @@ namespace TenisProgress.Server.Data.Migrations
 
             modelBuilder.Entity("TenisProgress.Server.Data.Player", b =>
                 {
-                    b.Navigation("Assessments");
-
                     b.Navigation("Goals");
 
                     b.Navigation("Matches");

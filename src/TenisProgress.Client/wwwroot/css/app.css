@@ -137,8 +137,8 @@ label.check input { width: auto; }
 .chart { width: 100%; height: auto; display: block; }
 .chart .gridline { stroke: #e7ebe4; stroke-width: 1; }
 .chart .axis { fill: var(--muted); font-size: 11px; }
-.chart polyline.s-avg { fill: none; stroke: var(--brand); stroke-width: 2.5; stroke-linejoin: round; }
-.chart circle.s-avg { fill: #fff; stroke: var(--brand); stroke-width: 2; }
+.chart polyline { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart circle { fill: #fff; stroke: var(--c); stroke-width: 2; }
 
 details { margin-top: 1rem; }
 summary { cursor: pointer; font-weight: 600; color: var(--brand); }
@@ -223,8 +223,8 @@ a, button, summary { -webkit-tap-highlight-color: rgba(31,122,77,.15); }
   .parent-head .actions { width: 100%; }
   /* The chart's viewBox is scaled down on phones, so enlarge its text and strokes. */
   .chart .axis { font-size: 20px; }
-  .chart polyline.s-avg { stroke-width: 4; }
-  .chart circle.s-avg { r: 6; stroke-width: 3; }
+  .chart:not(.compact) polyline { stroke-width: 4; }
+  .chart:not(.compact) circle { r: 6; stroke-width: 3; }
 }
 @media (display-mode: standalone) {
   body { overscroll-behavior-y: none; }
@@ -250,3 +250,28 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--danger); }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 1rem; top: .6rem; font-size: 1.2rem; }
 .blazor-error-boundary { background: #fdecea; color: #8a2318; padding: 1rem; border-radius: 8px; }
 .blazor-error-boundary::after { content: "Wystąpił błąd."; }
+
+/* ---- Ratings & progress charts ----------------------------------------- */
+.k-forehand { --c: #1f7a4d; }
+.k-backhand { --c: #2f6fdb; }
+.k-volley   { --c: #d97706; }
+.k-serve    { --c: #c0392b; }
+.k-movement { --c: #7b4fb3; }
+
+.chart.compact .axis { font-size: 11px; }
+.chart.compact polyline { stroke-width: 2.5; }
+.chart.compact circle { r: 3.5; stroke-width: 2; }
+
+.legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-bottom: .5rem; font-size: .85rem; }
+.legend-item, .rating { display: inline-flex; align-items: center; gap: .35rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+
+.skill-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .75rem; }
+.skill-card { border: 1px solid var(--line); border-radius: 10px; padding: .75rem; border-top: 3px solid var(--c); }
+.sc-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .25rem; }
+.sc-name { font-weight: 600; }
+.sc-val { font-weight: 700; font-size: 1.3rem; color: var(--c); }
+.sc-max { font-size: .8rem; font-weight: 400; color: var(--muted); }
+
+.ratings { display: flex; flex-wrap: wrap; gap: .25rem .9rem; margin-top: .3rem; font-size: .85rem; }
+.rating strong { color: var(--c); }

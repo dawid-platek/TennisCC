@@ -7,7 +7,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Player> Players => Set<Player>();
-    public DbSet<Assessment> Assessments => Set<Assessment>();
     public DbSet<Training> Trainings => Set<Training>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Goal> Goals => Set<Goal>();
@@ -26,13 +25,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(p => p.DominantHand).HasConversion<string>().HasMaxLength(10);
             e.HasMany(p => p.Parents).WithMany(u => u.Children).UsingEntity("PlayerParents");
-            e.HasMany(p => p.Assessments).WithOne().HasForeignKey(a => a.PlayerId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(p => p.Trainings).WithOne().HasForeignKey(t => t.PlayerId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(p => p.Matches).WithOne().HasForeignKey(m => m.PlayerId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(p => p.Goals).WithOne().HasForeignKey(g => g.PlayerId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        b.Entity<Assessment>().HasIndex(a => new { a.PlayerId, a.Date });
         b.Entity<Training>().HasIndex(t => new { t.PlayerId, t.Date });
         b.Entity<Match>().HasIndex(m => new { m.PlayerId, m.Date });
     }

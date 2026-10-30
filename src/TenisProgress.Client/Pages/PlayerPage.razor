@@ -12,8 +12,9 @@
 
 @if (_p is { } p)
 {
-    var latest = p.Assessments.FirstOrDefault();
-    var previous = p.Assessments.Skip(1).FirstOrDefault();
+    // Trainings come newest first; the "current" level is the most recent rated training.
+    var rated = p.Trainings.Where(t => t.HasScores).ToList();
+    var latest = rated.FirstOrDefault();
     var wins = p.Matches.Count(m => m.Won);
 
     <section class="card hero">
@@ -31,7 +32,7 @@
     </section>
 
     <div class="stats">
-        <div class="stat"><span class="num">@(latest?.Average?.ToString("0.0") ?? "–")</span><span class="lbl">Średnia ocena</span></div>
+        <div class="stat"><span class="num">@(Skills.LatestAverage(rated.Select(t => t.Scores))?.ToString("0.0") ?? "–")</span><span class="lbl">Średnia (1–6)</span></div>
         <div class="stat"><span class="num">@p.Trainings.Count</span><span class="lbl">Treningi</span></div>
         <div class="stat"><span class="num">@wins–@(p.Matches.Count - wins)</span><span class="lbl">Mecze W–P</span></div>
         <div class="stat"><span class="num">@p.Goals.Count(g => g.Done)/@p.Goals.Count</span><span class="lbl">Cele osiągnięte</span></div>
@@ -53,100 +54,55 @@
         </section>
     }
 
-    <section class="card">
-        <h2>Umiejętności</h2>
+    <section class="card" id="postepy">
+        <h2>Postępy</h2>
         @if (latest is null)
         {
-            <p class="muted">Brak ocen umiejętności.</p>
+            <p class="muted">Brak ocen. Oceny (1–6) wpisuje trener w dzienniku treningów.</p>
         }
         else
         {
             <p class="muted small">
-                Ostatnia ocena: @latest.Date.ToString("dd.MM.yyyy")
-                @if (previous is not null) { <text> · porównanie z @previous.Date.ToString("dd.MM.yyyy")</text> }
+                Aktualny poziom to ostatnia ocena każdego elementu (▲▼ = zmiana względem poprzedniej). Skala 1–6, 6 = najlepiej.
             </p>
-            <div class="skills">
+            @if (rated.Count >= 2)
+            {
+                <h3>Wszystkie elementy</h3>
+                <div class="legend">
+                    @foreach (var skill in Skills.All)
+                    {
+                        <span class="legend-item k-@skill.Key"><span class="dot"></span>@skill.Label</span>
+                    }
+                </div>
+                <SkillChart Trainings="p.Trainings" Label="Wykres postępów wszystkich elementów" />
+            }
+            else
+            {
+                <p class="muted small">Wykresy pojawią się po drugiej ocenionej sesji treningowej.</p>
+            }
+            <h3>Każdy element osobno</h3>
+            <div class="skill-cards">
                 @foreach (var skill in Skills.All)
                 {
-                    var v = latest.Scores.GetValueOrDefault(skill.Key);
-                    var pv = previous?.Scores.GetValueOrDefault(skill.Key);
-                    <div class="skill">
-                        <span class="skill-name">@skill.Label</span>
-                        <span class="bar"><span style="width: @((v ?? 0) * 10)%"></span></span>
-                        <span class="skill-val">
-                            @(v?.ToString() ?? "–")
-                            @if (v is { } cur && pv is { } prev && cur != prev)
-                            {
-                                <span class="delta @(cur > prev ? "up" : "down")">@(cur > prev ? "▲" : "▼")@Math.Abs(cur - prev)</span>
-                            }
-                        </span>
+                    // Newest first: the element's latest rating and the one before it.
+                    var history = rated.Select(t => t.Scores.GetValueOrDefault(skill.Key)).Where(x => x.HasValue).ToList();
+                    var v = history.FirstOrDefault();
+                    var pv = history.Skip(1).FirstOrDefault();
+                    <div class="skill-card k-@skill.Key">
+                        <div class="sc-head">
+                            <span class="sc-name">@skill.Label</span>
+                            <span class="sc-val">
+                                @(v?.ToString() ?? "–")<span class="sc-max">/@Skills.Max</span>
+                                @if (v is { } cur && pv is { } prev && cur != prev)
+                                {
+                                    <span class="delta @(cur > prev ? "up" : "down")">@(cur > prev ? "▲" : "▼")@Math.Abs(cur - prev)</span>
+                                }
+                            </span>
+                        </div>
+                        <SkillChart Trainings="p.Trainings" Only="new[] { skill }" Compact="true" Label="@($"Wykres postępów: {skill.Label}")" />
                     </div>
                 }
             </div>
-            @if (latest.Comment is not null) { <p class="pre comment">@latest.Comment</p> }
-        }
-
-        @if (p.Assessments.Count >= 2)
-        {
-            <h3>Średnia ocena w czasie</h3>
-            <ProgressChart Assessments="p.Assessments" />
-        }
-
-        @if (p.Assessments.Count > 0)
-        {
-            <details>
-                <summary>Historia ocen (@p.Assessments.Count)</summary>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                @foreach (var s in Skills.All) { <th>@s.Label</th> }
-                                <th>Śr.</th>
-                                @if (IsCoach) { <th></th> }
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var a in p.Assessments)
-                            {
-                                <tr>
-                                    <td>@a.Date.ToString("dd.MM.yyyy")</td>
-                                    @foreach (var s in Skills.All) { <td>@(a.Scores.GetValueOrDefault(s.Key)?.ToString() ?? "–")</td> }
-                                    <td><strong>@(a.Average?.ToString("0.0") ?? "–")</strong></td>
-                                    @if (IsCoach)
-                                    {
-                                        <td><button class="icon-btn" title="Usuń" aria-label="Usuń ocenę" @onclick="() => DeleteAsync(Kind.Assessments, a.Id)">×</button></td>
-                                    }
-                                </tr>
-                                @if (a.Comment is not null)
-                                {
-                                    <tr class="sub"><td colspan="@(Skills.All.Count + 3)">@a.Comment</td></tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </details>
-        }
-
-        @if (IsCoach)
-        {
-            <AddSection Title="Nowa ocena umiejętności" @bind-Open="_open[Kind.Assessments]">
-                <EditForm Model="_assessment" OnValidSubmit="() => AddAsync(Kind.Assessments, _assessment)" class="stack" FormName="assessment">
-                    <DataAnnotationsValidator />
-                    <label>Data <InputDate @bind-Value="_assessment.Date" /></label>
-                    <div class="score-grid">
-                        @foreach (var box in _scores)
-                        {
-                            <label>@box.Label <input type="number" min="1" max="10" @bind="box.Value" /></label>
-                        }
-                    </div>
-                    <p class="muted small">Skala 1–10. Pola wstępnie wypełnione ostatnią oceną; puste pole = brak oceny.</p>
-                    <label>Komentarz <InputTextArea @bind-Value="_assessment.Comment" rows="2" maxlength="2000" /></label>
-                    <ValidationSummary />
-                    <button class="btn primary">Zapisz ocenę</button>
-                </EditForm>
-            </AddSection>
         }
     </section>
 
@@ -245,6 +201,18 @@
                     <span class="date-pill">@t.Date.ToString("dd.MM.yyyy")</span>
                     <span class="grow">
                         <strong>@t.Topic</strong>@if (t.DurationMin is { } min) { <span class="muted small"> · @min min</span> }
+                        @if (t.HasScores)
+                        {
+                            <span class="ratings">
+                                @foreach (var skill in Skills.All)
+                                {
+                                    @if (t.Scores.GetValueOrDefault(skill.Key) is { } score)
+                                    {
+                                        <span class="rating k-@skill.Key" title="@skill.Label"><span class="dot"></span>@skill.Label <strong>@score</strong></span>
+                                    }
+                                }
+                            </span>
+                        }
                         @if (t.Notes is not null) { <span class="small block pre">@t.Notes</span> }
                     </span>
                     @if (IsCoach) { <button class="icon-btn" aria-label="Usuń trening" @onclick="() => DeleteAsync(Kind.Trainings, t.Id)">×</button> }
@@ -262,6 +230,23 @@
                     </div>
                     <label>Temat <InputText @bind-Value="_training.Topic" maxlength="200" placeholder="np. Serwis – rzut piłki, trafienie w pole" /></label>
                     <ValidationMessage For="() => _training.Topic" />
+                    <fieldset>
+                        <legend>Ocena elementów (1–6, 6 = najlepiej)</legend>
+                        <div class="score-grid">
+                            @foreach (var box in _scores)
+                            {
+                                <label>
+                                    @box.Label
+                                    <InputSelect @bind-Value="box.Value">
+                                        <option value="">—</option>
+                                        @for (var n = Skills.Min; n <= Skills.Max; n++) { <option value="@n">@n</option> }
+                                    </InputSelect>
+                                </label>
+                            }
+                        </div>
+                        <p class="muted small">Zostaw „—”, jeśli element nie był oceniany na tym treningu.</p>
+                    </fieldset>
+                    <ValidationSummary />
                     <label>Notatki <InputTextArea @bind-Value="_training.Notes" rows="2" maxlength="2000" /></label>
                     <button class="btn primary">Dodaj trening</button>
                 </EditForm>
@@ -305,10 +290,10 @@
 
     private static class Kind
     {
-        public const string Assessments = "assessments", Trainings = "trainings", Matches = "matches", Goals = "goals";
+        public const string Trainings = "trainings", Matches = "matches", Goals = "goals";
     }
 
-    // Binds one number input to one entry of AssessmentForm.Scores (inputs can't bind to an indexer directly).
+    // Binds one select to one entry of TrainingForm.Scores (inputs can't bind to a dictionary indexer directly).
     private sealed class ScoreBox(Skill skill, Dictionary<string, int?> scores)
     {
         public string Label => skill.Label;
@@ -322,9 +307,8 @@
 
     private readonly Dictionary<string, bool> _open = new()
     {
-        [Kind.Assessments] = false, [Kind.Trainings] = false, [Kind.Matches] = false, [Kind.Goals] = false,
+        [Kind.Trainings] = false, [Kind.Matches] = false, [Kind.Goals] = false,
     };
-    private AssessmentForm _assessment = new();
     private List<ScoreBox> _scores = [];
     private TrainingForm _training = new();
     private MatchForm _match = new();
@@ -348,16 +332,13 @@
         var res = await Api.Player(Id);
         _loadErrors = res.Ok ? null : res.Errors;
         _p = res.Value;
-        ResetScores();
+        if (_scores.Count == 0) ResetTrainingForm();
     }
 
-    // New assessments start from the latest scores, so the coach only adjusts what changed.
-    private void ResetScores()
+    private void ResetTrainingForm()
     {
-        var latest = _p?.Assessments.FirstOrDefault();
-        _assessment = new AssessmentForm();
-        foreach (var s in Skills.All) _assessment.Scores[s.Key] = latest?.Scores.GetValueOrDefault(s.Key);
-        _scores = Skills.All.Select(s => new ScoreBox(s, _assessment.Scores)).ToList();
+        _training = new TrainingForm();
+        _scores = Skills.All.Select(s => new ScoreBox(s, _training.Scores)).ToList();
     }
 
     private async Task AddAsync(string kind, object form)
@@ -371,13 +352,12 @@
         _open[kind] = false;
         switch (kind)
         {
-            case Kind.Trainings: _training = new(); break;
+            case Kind.Trainings: ResetTrainingForm(); break;
             case Kind.Matches: _match = new(); break;
             case Kind.Goals: _goal = new(); break;
         }
         Toasts.Success(kind switch
         {
-            Kind.Assessments => "Zapisano ocenę umiejętności.",
             Kind.Trainings => "Dodano trening.",
             Kind.Matches => "Dodano mecz.",
             _ => "Dodano cel.",

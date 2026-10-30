@@ -56,10 +56,9 @@ public sealed class ApiTests(ApiTests.Scenario s) : IClassFixture<ApiTests.Scena
                 .EnsureSuccessStatusCode().Content.ReadFromJsonAsync<CreatedCredentials>();
             (await Coach.PutAsync($"/api/players/{Maja}/parents/{piotr!.Id}", null)).EnsureSuccessStatusCode();
 
-            var assessment = new AssessmentForm { Date = new DateOnly(2026, 9, 1), Comment = "Dobry trening" };
-            assessment.Scores["forehand"] = 6;
-            assessment.Scores["serve"] = 4;
-            (await Coach.PostAsJsonAsync($"/api/players/{Zosia}/assessments", assessment)).EnsureSuccessStatusCode();
+            // Two rated trainings for Zosia (scale 1–6), so a progress chart has something to draw.
+            await AddTraining(Zosia, new DateOnly(2026, 9, 1), forehand: 3, serve: 2);
+            await AddTraining(Zosia, new DateOnly(2026, 9, 8), forehand: 5, serve: 4);
 
             Anna = await Login("anna@test.pl", anna.TemporaryPassword!);
             Piotr = await Login("piotr@test.pl", "piotrhaslo");
@@ -72,6 +71,14 @@ public sealed class ApiTests(ApiTests.Scenario s) : IClassFixture<ApiTests.Scena
             var c = NewClient();
             (await c.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = email, Password = password })).EnsureSuccessStatusCode();
             return c;
+        }
+
+        public async Task AddTraining(int playerId, DateOnly date, int? forehand = null, int? serve = null)
+        {
+            var form = new TrainingForm { Date = date, Topic = "Trening testowy" };
+            form.Scores["forehand"] = forehand;
+            form.Scores["serve"] = serve;
+            (await Coach.PostAsJsonAsync($"/api/players/{playerId}/trainings", form)).EnsureSuccessStatusCode();
         }
 
         private async Task<int> AddPlayer(string first, string last)
@@ -108,7 +115,17 @@ public sealed class ApiTests(ApiTests.Scenario s) : IClassFixture<ApiTests.Scena
 
         var zosia = await s.Coach.GetFromJsonAsync<PlayerDetail>($"/api/players/{s.Zosia}");
         Assert.Equal("SEKRET-TRENERA", zosia!.PrivateNotes);
-        Assert.Equal(5.0, zosia.Assessments.Single().Average);
+
+        Assert.Equal(2, zosia.Trainings.Count);
+        var newest = zosia.Trainings[0]; // newest first
+        Assert.Equal(new DateOnly(2026, 9, 8), newest.Date);
+        Assert.Equal(5, newest.Scores["forehand"]);
+        Assert.Equal(4, newest.Scores["serve"]);
+        Assert.Null(newest.Scores["backhand"]);
+        Assert.Equal(4.5, newest.Average);
+
+        // The list shows the average of the latest rated training.
+        Assert.Equal(4.5, players.Single(p => p.Id == s.Zosia).LatestAverage);
     }
 
     [Fact]
@@ -128,7 +145,7 @@ public sealed class ApiTests(ApiTests.Scenario s) : IClassFixture<ApiTests.Scena
         var zosia = await s.Anna.GetFromJsonAsync<PlayerDetail>($"/api/players/{s.Zosia}");
         Assert.Null(zosia!.PrivateNotes);
         Assert.Null(zosia.Parents);
-        Assert.Single(zosia.Assessments);
+        Assert.Equal(2, zosia.Trainings.Count(t => t.HasScores)); // parents see the ratings (and charts) of their child
     }
 
     [Fact]
@@ -145,9 +162,9 @@ public sealed class ApiTests(ApiTests.Scenario s) : IClassFixture<ApiTests.Scena
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Anna.GetAsync("/api/parents")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Anna.PostAsJsonAsync("/api/players",
             new PlayerForm { FirstName = "X", LastName = "Y" })).StatusCode);
-        var a = new AssessmentForm();
-        a.Scores["forehand"] = 10;
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.Anna.PostAsJsonAsync($"/api/players/{s.Zosia}/assessments", a)).StatusCode);
+        var training = new TrainingForm { Topic = "X" };
+        training.Scores["forehand"] = 6;
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Anna.PostAsJsonAsync($"/api/players/{s.Zosia}/trainings", training)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Anna.DeleteAsync($"/api/players/{s.Maja}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await s.Anna.PutAsync($"/api/players/{s.Maja}/parents/{s.AnnaId}", null)).StatusCode);
     }
@@ -167,9 +184,13 @@ public sealed class ApiTests(ApiTests.Scenario s) : IClassFixture<ApiTests.Scena
     {
         var res = await s.Coach.PostAsJsonAsync("/api/players", new PlayerForm { FirstName = "", LastName = "" });
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
-        var bad = new AssessmentForm();
-        bad.Scores["forehand"] = 11;
-        Assert.Equal(HttpStatusCode.BadRequest, (await s.Coach.PostAsJsonAsync($"/api/players/{s.Zosia}/assessments", bad)).StatusCode);
+        // Ratings are 1–6: 0 and 7 are rejected, 6 is fine.
+        foreach (var (score, expected) in new[] { (0, HttpStatusCode.BadRequest), (7, HttpStatusCode.BadRequest), (6, HttpStatusCode.NoContent) })
+        {
+            var bad = new TrainingForm { Topic = "Test skali" };
+            bad.Scores["volley"] = score;
+            Assert.Equal(expected, (await s.Coach.PostAsJsonAsync($"/api/players/{s.Maja}/trainings", bad)).StatusCode);
+        }
     }
 
     [Fact]

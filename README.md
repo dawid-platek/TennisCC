@@ -10,16 +10,18 @@ Każdy rodzic po zalogowaniu widzi **wyłącznie swoje dziecko lub dzieci** (tyl
 
 **Trener (administrator)**
 - lista zawodników z wyszukiwarką, dodawanie / edycja / usuwanie,
-- oceny umiejętności w skali 1–10 (forhend, bekhend, serwis, wolej, return, praca nóg, taktyka, psychika)
-  z porównaniem do poprzedniej oceny i wykresem średniej w czasie,
-- dziennik treningów, mecze i turnieje (bilans W–P), cele z terminami,
+- dziennik treningów z oceną **1–6** pięciu elementów: forhend, bekhend, wolej, serwis, poruszanie się
+  (każdy element jest opcjonalny — oceniasz tylko to, co było ćwiczone),
+- **wykresy postępów** każdego zawodnika: wspólny wykres wszystkich elementów oraz osobny wykres
+  każdego elementu, z aktualną oceną i zmianą ▲▼ względem poprzedniej,
+- mecze i turnieje (bilans W–P), cele z terminami,
 - notatki prywatne niewidoczne dla rodziców,
 - konta rodziców: zakładanie (z automatycznym hasłem tymczasowym), reset hasła, usuwanie,
   przypisywanie wielu dzieci do jednego rodzica i wielu rodziców do jednego dziecka.
 
 **Rodzic**
 - logowanie e-mailem i hasłem, zmiana własnego hasła,
-- podgląd postępów tylko swoich dzieci (jedno dziecko → od razu jego profil).
+- podgląd postępów, ocen i wykresów tylko swoich dzieci (jedno dziecko → od razu jego profil).
 
 ## Struktura
 

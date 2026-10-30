@@ -85,8 +85,11 @@ public sealed class PlayerForm
 
 public enum Hand { Right, Left }
 
-public sealed record AssessmentDto(int Id, DateOnly Date, IReadOnlyDictionary<string, int?> Scores, string? Comment)
+public sealed record TrainingDto(
+    int Id, DateOnly Date, string Topic, int? DurationMin, string? Notes, IReadOnlyDictionary<string, int?> Scores)
 {
+    public bool HasScores => Scores.Values.Any(v => v.HasValue);
+
     public double? Average
     {
         get
@@ -96,8 +99,6 @@ public sealed record AssessmentDto(int Id, DateOnly Date, IReadOnlyDictionary<st
         }
     }
 }
-
-public sealed record TrainingDto(int Id, DateOnly Date, string Topic, int? DurationMin, string? Notes);
 public sealed record MatchDto(int Id, DateOnly Date, string? Tournament, string? Opponent, bool Won, string? Score, string? Notes);
 public sealed record GoalDto(int Id, string Title, DateOnly? TargetDate, bool Done);
 
@@ -112,7 +113,6 @@ public sealed record PlayerDetail(
     string? Notes,
     string? PrivateNotes,              // null for parents
     IReadOnlyList<ParentRef>? Parents, // null for parents
-    IReadOnlyList<AssessmentDto> Assessments, // newest first
     IReadOnlyList<TrainingDto> Trainings,
     IReadOnlyList<MatchDto> Matches,
     IReadOnlyList<GoalDto> Goals)
@@ -121,28 +121,7 @@ public sealed record PlayerDetail(
     public string Initials => $"{FirstName[..1]}{LastName[..1]}".ToUpperInvariant();
 }
 
-public sealed class AssessmentForm : IValidatableObject
-{
-    [Required(ErrorMessage = "Podaj datę.")]
-    public DateOnly? Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
-
-    public Dictionary<string, int?> Scores { get; set; } = Skills.All.ToDictionary(s => s.Key, _ => (int?)null);
-
-    [StringLength(2000)]
-    public string? Comment { get; set; }
-
-    public IEnumerable<ValidationResult> Validate(ValidationContext context)
-    {
-        if (Scores.Keys.Any(k => Skills.All.All(s => s.Key != k)))
-            yield return new ValidationResult("Nieznana umiejętność.");
-        if (Scores.Values.Any(v => v is < Skills.Min or > Skills.Max))
-            yield return new ValidationResult("Oceny muszą być w skali 1–10.");
-        if (Scores.Values.All(v => v is null))
-            yield return new ValidationResult("Oceń przynajmniej jedną umiejętność.");
-    }
-}
-
-public sealed class TrainingForm
+public sealed class TrainingForm : IValidatableObject
 {
     [Required(ErrorMessage = "Podaj datę.")]
     public DateOnly? Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
@@ -155,6 +134,18 @@ public sealed class TrainingForm
 
     [StringLength(2000)]
     public string? Notes { get; set; }
+
+    /// <summary>Rating 1–6 per element (see <see cref="Skills.All"/>); null = not rated in this training.</summary>
+    public Dictionary<string, int?> Scores { get; set; } = Skills.All.ToDictionary(s => s.Key, _ => (int?)null);
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext context)
+    {
+        var scores = Scores ?? [];
+        if (scores.Keys.Any(k => Skills.All.All(s => s.Key != k)))
+            yield return new ValidationResult("Nieznany element oceny.");
+        if (scores.Values.Any(v => v is < Skills.Min or > Skills.Max))
+            yield return new ValidationResult($"Oceny muszą być w skali {Skills.Min}–{Skills.Max}.");
+    }
 }
 
 public sealed class MatchForm
